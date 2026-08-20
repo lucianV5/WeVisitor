@@ -1,0 +1,7 @@
+{
+  "name": "updateInsider",
+  "version": "1.0.0",
+  "description": "访客预约系统-编辑内部人员",
+  "main": "index.js",
+  "dependencies": {}
+}

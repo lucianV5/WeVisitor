@@ -1,0 +1,40 @@
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding: $spacing-md $spacing-lg 40rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+.card {
+  background: #fff;
+  border-radius: $radius-card;
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  flex-direction: column;
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+}
+.icon {
+  font-size: $font-lg;
+  margin-right: $spacing-sm;
+}
+.title {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $color-text-primary;
+}
+.content {
+  font-size: $font-md;
+  color: $color-text-primary;
+  line-height: 1.6;
+  margin-bottom: $spacing-xs;
+}
+.time {
+  font-size: $font-sm;
+  color: $color-text-secondary;
+}

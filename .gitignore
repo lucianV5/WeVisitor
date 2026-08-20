@@ -1,0 +1,58 @@
+# Windows
+[Dd]esktop.ini
+Thumbs.db
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+
+# Node.js
+node_modules/
+package-lock.json
+yarn-error.log*
+
+# 构建输出
+dist/
+unpackage/
+
+# IDE 配置
+.hbuilderx/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 微信开发者工具（本地私有配置，含本地路径和个人信息）
+project.private.config.json
+
+# manifest.json 含 uniCloud clientSecret，提交模板版本，真实版本地维护
+src/manifest.json
+
+# uniCloud 本地配置（含环境 ID、密钥等敏感信息）
+uniCloud-alipay/cloudfunctions/*/node_modules/
+uniCloud-alipay/cloudfunctions/*/package-lock.json
+uniCloud-alipay/database/*.schema.json
+
+# 环境变量与密钥
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# TRAE / HBuilderX 本地缓存
+.pai/
+.swc/
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# 系统临时文件
+*.tmp
+~$*

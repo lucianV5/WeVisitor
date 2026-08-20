@@ -1,0 +1,173 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(110rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.header {
+  padding: $spacing-xl $spacing-xl $spacing-lg;
+  background-color: $color-bg-page;
+}
+.userRow {
+  display: flex;
+  align-items: center;
+}
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: $radius-chip;
+  background: $color-primary-bg;
+  overflow: hidden;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+.avatarImg {
+  width: 100%;
+  height: 100%;
+}
+.userName {
+  font-size: $font-xl;
+  font-weight: 500;
+  color: $color-text-primary;
+}
+.loginBtn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-md;
+  font-weight: 500;
+  border: none;
+  line-height: 80rpx;
+  padding: 0;
+  &::after {
+    border: none;
+  }
+}
+.managementCard {
+  margin: 0 $spacing-xl $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-card;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+.managementTitle {
+  display: block;
+  font-size: $font-md;
+  font-weight: 600;
+  color: $color-text-primary;
+  padding: $spacing-xs $spacing-sm $spacing-md;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-md;
+}
+.gridItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-sm 0;
+  &:active {
+    opacity: 0.7;
+  }
+}
+.gridIcon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-input;
+  background: $color-primary-bg;
+  @include flex-center;
+  font-size: 36rpx;
+  color: $color-text-primary;
+  margin-bottom: $spacing-xs;
+}
+.gridLabel {
+  font-size: $font-sm;
+  color: $color-text-primary;
+  text-align: center;
+}
+.menuCard {
+  margin: 0 $spacing-xl $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-card;
+  padding: $spacing-xs 0;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  position: relative;
+  &:active {
+    background: #F2F3F5;
+  }
+  &.withBorder::after {
+    content: '';
+    position: absolute;
+    left: $spacing-lg;
+    right: 0;
+    bottom: 0;
+    height: 1rpx;
+    background: $color-border;
+  }
+}
+.menuIcon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-input;
+  background: $color-primary-bg;
+  @include flex-center;
+  font-size: 32rpx;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+.menuLabel {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-primary;
+  font-weight: 500;
+}
+.menuArrow {
+  font-size: $font-xl;
+  color: $color-text-secondary;
+}
+.unreadBadge {
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 10rpx;
+  border-radius: 18rpx;
+  background: #f53f3f;
+  color: #fff;
+  font-size: 22rpx;
+  line-height: 36rpx;
+  text-align: center;
+  margin-right: $spacing-sm;
+  box-sizing: border-box;
+}
+.footer {
+  margin-top: auto;
+  padding: $spacing-xl $spacing-xl calc($spacing-xl + env(safe-area-inset-bottom));
+}
+.logoutBtn {
+  width: 100%;
+  height: 96rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-lg;
+  font-weight: 600;
+  border: none;
+  line-height: 96rpx;
+  padding: 0;
+  &:active {
+    opacity: 0.9;
+  }
+  &::after {
+    border: none;
+  }
+}

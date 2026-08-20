@@ -1,0 +1,48 @@
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-md: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 40rpx;
+$spacing-xxl: 48rpx;
+
+$radius-card: 16rpx;
+$radius-button: 48rpx;
+$radius-input: 12rpx;
+$radius-chip: 999rpx;
+
+$shadow-card: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+
+$font-xs: 22rpx;
+$font-sm: 24rpx;
+$font-base: 28rpx;
+$font-md: 30rpx;
+$font-lg: 32rpx;
+$font-xl: 36rpx;
+$font-xxl: 40rpx;
+
+$color-text-primary: #1D2129;
+$color-text-regular: #4E5969;
+$color-text-secondary: #86909C;
+$color-text-placeholder: #C9CDD4;
+$color-border: #E5E6EB;
+$color-bg-page: #F5F7FA;
+$color-bg-card: #FFFFFF;
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin text-ellipsis($rows: 1) {
+  @if $rows == 1 {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $rows;
+    overflow: hidden;
+  }
+}

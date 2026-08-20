@@ -1,0 +1,149 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 200rpx;
+}
+.form {
+  padding: $spacing-md $spacing-xl;
+}
+.field {
+  margin-bottom: $spacing-lg;
+}
+.fieldRow {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  .field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+.labelRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+.required {
+  color: $color-danger;
+  font-size: $font-md;
+  margin-right: $spacing-xs;
+}
+.label {
+  font-size: $font-md;
+  font-weight: 500;
+  color: $color-text-primary;
+}
+.inputWrap {
+  display: flex;
+  align-items: center;
+  min-height: 80rpx;
+  background: $color-bg-card;
+  border-radius: $radius-input;
+  padding: 0 $spacing-md;
+  border: 1rpx solid $color-border;
+}
+.input {
+  flex: 1;
+  height: 80rpx;
+  font-size: $font-md;
+  color: $color-text-primary;
+}
+.placeholder {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-placeholder;
+}
+.valueText {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-primary;
+}
+.pickerHalf {
+  flex: 1;
+  height: 80rpx;
+  min-width: 0;
+}
+.pickerInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  box-sizing: border-box;
+}
+.pickerGap {
+  width: $spacing-md;
+  flex-shrink: 0;
+}
+.pickerPrefix {
+  font-size: $font-md;
+  color: $color-text-primary;
+  flex-shrink: 0;
+  line-height: 80rpx;
+}
+.pickerValue {
+  font-size: $font-md;
+  color: $color-text-primary;
+  line-height: 80rpx;
+}
+.pickerPlaceholder {
+  font-size: $font-md;
+  color: $color-text-placeholder;
+  line-height: 80rpx;
+}
+.arrow {
+  font-size: $font-lg;
+  color: $color-text-secondary;
+  margin-left: $spacing-sm;
+}
+.textareaWrap {
+  background: $color-bg-card;
+  border-radius: $radius-input;
+  padding: $spacing-md;
+  border: 1rpx solid $color-border;
+}
+.textarea {
+  width: 100%;
+  min-height: 160rpx;
+  font-size: $font-md;
+  color: $color-text-primary;
+  line-height: 1.5;
+}
+.error {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-sm;
+  color: $color-danger;
+}
+.footerBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $spacing-xl calc($spacing-md + env(safe-area-inset-bottom));
+  background: $color-bg-page;
+  z-index: 20;
+}
+.submitBtn {
+  width: 100%;
+  height: 96rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-lg;
+  font-weight: 600;
+  border: none;
+  line-height: 96rpx;
+  padding: 0;
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+  &.disabled {
+    background: $color-text-placeholder;
+  }
+  &::after {
+    border: none;
+  }
+}

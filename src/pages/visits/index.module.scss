@@ -1,0 +1,65 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.tabsWrap {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: $color-bg-page;
+  padding: $spacing-md $spacing-xl $spacing-sm;
+}
+.tabs {
+  display: flex;
+  background: $color-bg-card;
+  border-radius: $radius-card;
+  padding: $spacing-xs;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+.tab {
+  flex: 1;
+  height: 72rpx;
+  @include flex-center;
+  border-radius: $radius-input;
+  &.active {
+    background: $color-primary;
+  }
+}
+.tabText {
+  font-size: $font-md;
+  font-weight: 500;
+  color: $color-text-secondary;
+  white-space: nowrap;
+  .active & {
+    color: #fff;
+    font-weight: 600;
+  }
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-xs $spacing-xs;
+}
+.totalText {
+  font-size: $font-sm;
+  color: $color-text-secondary;
+}
+.exportBtn {
+  padding: $spacing-xs $spacing-md;
+  background: $color-primary-bg;
+  color: $color-primary;
+  border-radius: $radius-chip;
+  font-size: $font-sm;
+  font-weight: 500;
+  &:active {
+    opacity: 0.8;
+  }
+}
+.listWrap {
+  padding: $spacing-sm $spacing-xl 0;
+}

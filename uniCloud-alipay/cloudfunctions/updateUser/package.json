@@ -1,0 +1,7 @@
+{
+  "name": "updateUser",
+  "version": "1.0.0",
+  "description": "访客预约系统-更新当前用户信息",
+  "main": "index.js",
+  "dependencies": {}
+}

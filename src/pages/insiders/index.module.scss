@@ -1,0 +1,136 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-xl;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: $color-bg-page;
+}
+.searchInput {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  padding: 0 $spacing-md;
+  height: 72rpx;
+}
+.searchIcon {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  margin-right: $spacing-xs;
+}
+.clearIcon {
+  font-size: $font-xl;
+  color: $color-text-secondary;
+  padding: 0 $spacing-xs;
+}
+.input {
+  flex: 1;
+  height: 72rpx;
+  font-size: $font-md;
+  color: $color-text-primary;
+}
+.addBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  padding: 0 $spacing-lg;
+  background: $color-primary;
+  color: #fff;
+  border-radius: $radius-button;
+  font-size: $font-md;
+  font-weight: 500;
+  flex-shrink: 0;
+  &:active {
+    opacity: 0.9;
+  }
+}
+.listWrap {
+  padding: 0 $spacing-xl;
+}
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-card;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  position: relative;
+  &:active {
+    transform: scale(0.99);
+  }
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+.avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-chip;
+  background: $color-primary-bg;
+  @include flex-center;
+  margin-right: $spacing-sm;
+  flex-shrink: 0;
+}
+.avatarText {
+  font-size: $font-md;
+  font-weight: 600;
+  color: $color-primary;
+}
+.name {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $color-text-primary;
+}
+.roleTag {
+  margin-left: $spacing-sm;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-chip;
+  background: rgba(255, 138, 0, 0.1);
+  color: #ff8a00;
+  font-size: $font-xs;
+  font-weight: 500;
+}
+.cardInfo {
+  display: flex;
+  align-items: center;
+  padding: $spacing-xs 0;
+}
+.infoLabel {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  flex-shrink: 0;
+}
+.infoValue {
+  font-size: $font-md;
+  color: $color-text-primary;
+  flex: 1;
+}
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+}
+.actionBtn {
+  padding: $spacing-xs $spacing-md;
+  background: #F2F3F5;
+  border-radius: $radius-chip;
+  font-size: $font-sm;
+  color: $color-text-regular;
+  &:active {
+    background: $color-primary-bg;
+    color: $color-primary;
+  }
+}

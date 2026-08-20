@@ -1,0 +1,7 @@
+{
+  "name": "updateVisitStatus",
+  "version": "1.0.0",
+  "description": "访客预约系统-更新预约状态（审核/签到/签离/取消）",
+  "main": "index.js",
+  "dependencies": {}
+}

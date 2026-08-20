@@ -1,0 +1,133 @@
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+.tabBar {
+  display: flex;
+  background: #fff;
+  padding: 0 $spacing-lg;
+  border-bottom: 1rpx solid $color-border;
+}
+.tabItem {
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-md;
+  color: $color-text-secondary;
+  position: relative;
+}
+.tabActive {
+  color: $color-primary;
+  font-weight: 600;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 48rpx;
+    height: 6rpx;
+    border-radius: 3rpx;
+    background: $color-primary;
+  }
+}
+.listWrap {
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+.card {
+  background: #fff;
+  border-radius: $radius-card;
+  padding: $spacing-md $spacing-lg;
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+.avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-chip;
+  background: $color-primary-bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+.avatarText {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $color-primary;
+}
+.cardTitle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.name {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $color-text-primary;
+}
+.subName {
+  font-size: $font-sm;
+  color: $color-text-secondary;
+  margin-top: 4rpx;
+}
+.statusTag {
+  font-size: $font-sm;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-chip;
+}
+.tagGreen {
+  background: rgba(0, 180, 42, 0.1);
+  color: #00b42a;
+}
+.tagRed {
+  background: rgba(245, 63, 63, 0.1);
+  color: #f53f3f;
+}
+.cardInfo {
+  display: flex;
+  align-items: center;
+  padding: $spacing-xs 0;
+}
+.infoLabel {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  width: 160rpx;
+  flex-shrink: 0;
+}
+.infoValue {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-primary;
+}
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+}
+.rejectBtn {
+  padding: 12rpx 44rpx;
+  border-radius: $radius-button;
+  border: 1rpx solid #f53f3f;
+  color: #f53f3f;
+  font-size: $font-md;
+}
+.approveBtn {
+  padding: 12rpx 44rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-md;
+}
+.handleTime {
+  margin-top: $spacing-sm;
+  font-size: $font-sm;
+  color: $color-text-secondary;
+}

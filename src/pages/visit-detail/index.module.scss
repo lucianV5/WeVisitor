@@ -1,0 +1,84 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 200rpx;
+}
+.form {
+  padding: $spacing-md $spacing-xl;
+}
+.field {
+  margin-bottom: $spacing-lg;
+}
+.fieldRow {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  .field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+.label {
+  display: block;
+  font-size: $font-md;
+  font-weight: 500;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+.valueWrap {
+  display: flex;
+  align-items: center;
+  min-height: 80rpx;
+  background: $color-bg-card;
+  border-radius: $radius-input;
+  padding: 0 $spacing-md;
+  border: 1rpx solid $color-border;
+}
+.value {
+  font-size: $font-md;
+  color: $color-text-primary;
+  word-break: break-all;
+}
+.textareaWrap {
+  background: $color-bg-card;
+  border-radius: $radius-input;
+  padding: $spacing-md;
+  border: 1rpx solid $color-border;
+  min-height: 160rpx;
+}
+.footerBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $spacing-xl calc($spacing-md + env(safe-area-inset-bottom));
+  background: $color-bg-page;
+  display: flex;
+  gap: $spacing-md;
+  z-index: 20;
+}
+.btn {
+  flex: 1;
+  height: 96rpx;
+  border-radius: $radius-button;
+  font-size: $font-lg;
+  font-weight: 600;
+  border: none;
+  line-height: 96rpx;
+  padding: 0;
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+  &::after {
+    border: none;
+  }
+}
+.btnApprove {
+  background: $color-primary;
+  color: #fff;
+}
+.btnReject {
+  background: $color-primary;
+  color: #fff;
+}

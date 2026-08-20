@@ -1,0 +1,7 @@
+{
+  "name": "handleInsiderApplication",
+  "version": "1.00",
+  "description": "访客预约系统-管理员审批内部员工申请",
+  "main": "index.js",
+  "dependencies": {}
+}

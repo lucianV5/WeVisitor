@@ -1,0 +1,7 @@
+{
+  "name": "getInsiders",
+  "version": "1.0.0",
+  "description": "访客预约系统-获取内部人员列表",
+  "main": "index.js",
+  "dependencies": {}
+}

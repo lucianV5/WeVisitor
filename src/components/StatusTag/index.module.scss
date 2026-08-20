@@ -1,0 +1,45 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 $spacing-md;
+  height: 44rpx;
+  border-radius: $radius-chip;
+  white-space: nowrap;
+  &.sm {
+    padding: 0 $spacing-sm;
+    height: 36rpx;
+  }
+}
+.text {
+  font-size: $font-sm;
+  font-weight: 500;
+  line-height: 1;
+  .sm & {
+    font-size: $font-xs;
+  }
+}
+.pending {
+  background-color: $color-pending-bg;
+  .text {
+    color: $color-pending;
+  }
+}
+.approved {
+  background-color: $color-approved-bg;
+  .text {
+    color: $color-approved;
+  }
+}
+.completed {
+  background-color: $color-completed-bg;
+  .text {
+    color: $color-completed;
+  }
+}
+.rejected {
+  background-color: $color-rejected-bg;
+  .text {
+    color: $color-rejected;
+  }
+}

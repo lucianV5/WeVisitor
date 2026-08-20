@@ -1,0 +1,90 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 200rpx;
+}
+.formCard {
+  background: $color-bg-card;
+  margin-top: $spacing-md;
+  padding: 0 $spacing-xl;
+}
+.formRow {
+  display: flex;
+  align-items: center;
+  min-height: 112rpx;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-border;
+  &:last-child {
+    border-bottom: none;
+  }
+}
+.formLabel {
+  display: flex;
+  align-items: center;
+  font-size: $font-md;
+  color: $color-text-primary;
+  font-weight: 500;
+  width: 180rpx;
+  flex-shrink: 0;
+}
+.required {
+  color: $color-danger;
+  font-size: $font-md;
+  margin-right: $spacing-xs;
+}
+.input {
+  flex: 1;
+  height: 80rpx;
+  font-size: $font-md;
+  color: $color-text-primary;
+  padding: 0;
+}
+.pickerRow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 80rpx;
+}
+.valueText {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-primary;
+}
+.placeholder {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-secondary;
+}
+.arrow {
+  font-size: $font-lg;
+  color: $color-text-secondary;
+  margin-left: $spacing-sm;
+}
+.footerBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $spacing-xl calc($spacing-md + env(safe-area-inset-bottom));
+  background: $color-bg-page;
+  z-index: 20;
+}
+.saveBtn {
+  width: 100%;
+  height: 96rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-lg;
+  font-weight: 600;
+  border: none;
+  line-height: 96rpx;
+  padding: 0;
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+  &::after {
+    border: none;
+  }
+}

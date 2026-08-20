@@ -1,0 +1,130 @@
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding: $spacing-lg;
+  box-sizing: border-box;
+}
+.statusCard {
+  background: #fff;
+  border-radius: $radius-card;
+  padding: $spacing-xl $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 60rpx;
+}
+.statusIcon {
+  font-size: 72rpx;
+  margin-bottom: $spacing-md;
+}
+.statusTitle {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+.statusDesc {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+}
+.statusBtn {
+  padding: 16rpx 48rpx;
+  border-radius: $radius-chip;
+  background: $color-primary-bg;
+  color: $color-primary;
+  font-size: $font-md;
+}
+.formCard {
+  background: #fff;
+  border-radius: $radius-card;
+  padding: $spacing-lg;
+}
+.tip {
+  font-size: $font-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  margin-bottom: $spacing-md;
+}
+.rejectedTip {
+  font-size: $font-sm;
+  color: #f53f3f;
+  background: rgba(245, 63, 63, 0.08);
+  border-radius: $radius-chip;
+  padding: 14rpx 20rpx;
+  line-height: 1.5;
+  margin-bottom: $spacing-md;
+}
+.formRow {
+  display: flex;
+  align-items: center;
+  border-bottom: 1rpx solid $color-border;
+  padding: $spacing-sm 0;
+}
+.formLabel {
+  width: 170rpx;
+  display: flex;
+  align-items: center;
+  font-size: $font-md;
+  color: $color-text-primary;
+  flex-shrink: 0;
+}
+.required {
+  color: #f53f3f;
+  margin-right: 4rpx;
+}
+.input {
+  flex: 1;
+  height: 80rpx;
+  font-size: $font-md;
+  color: $color-text-primary;
+  padding: 0;
+}
+.pickerRow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 80rpx;
+}
+.valueText {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-primary;
+}
+.placeholder {
+  flex: 1;
+  font-size: $font-md;
+  color: $color-text-secondary;
+}
+.arrow {
+  font-size: $font-lg;
+  color: $color-text-secondary;
+  margin-left: $spacing-sm;
+}
+.error {
+  font-size: $font-sm;
+  color: #f53f3f;
+  padding: 6rpx 0 0 8rpx;
+  display: block;
+}
+.submitBtn {
+  margin-top: $spacing-lg;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-md;
+  border-radius: $radius-button;
+  height: 88rpx;
+  line-height: 88rpx;
+}
+.disabled {
+  opacity: 0.6;
+}
+.linkBtn {
+  margin-top: $spacing-md;
+  text-align: center;
+  color: $color-primary;
+  font-size: $font-md;
+  padding: $spacing-sm 0;
+}

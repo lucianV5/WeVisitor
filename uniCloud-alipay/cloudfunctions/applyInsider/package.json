@@ -1,0 +1,7 @@
+{
+  "name": "applyInsider",
+  "version": "1.00",
+  "description": "访客预约系统-申请成为内部员工",
+  "main": "index.js",
+  "dependencies": {}
+}

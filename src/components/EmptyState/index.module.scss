@@ -1,0 +1,15 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx $spacing-lg;
+}
+.icon {
+  font-size: 100rpx;
+  margin-bottom: $spacing-lg;
+}
+.text {
+  font-size: $font-md;
+  color: $color-text-secondary;
+}

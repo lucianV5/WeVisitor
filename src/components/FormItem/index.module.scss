@@ -1,0 +1,26 @@
+.wrap {
+  margin-bottom: $spacing-lg;
+}
+.labelRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+.required {
+  color: $color-danger;
+  font-size: $font-md;
+  margin-right: $spacing-xs;
+}
+.label {
+  font-size: $font-md;
+  font-weight: 500;
+  color: $color-text-primary;
+}
+.content {
+  min-height: 80rpx;
+}
+.error {
+  margin-top: $spacing-xs;
+  font-size: $font-sm;
+  color: $color-danger;
+}
