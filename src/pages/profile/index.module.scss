@@ -27,10 +27,46 @@
   width: 100%;
   height: 100%;
 }
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  font-weight: 600;
+  color: $color-primary;
+  background: $color-primary-bg;
+}
 .userName {
   font-size: $font-xl;
   font-weight: 500;
   color: $color-text-primary;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.roleSwitchRow {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.roleTag {
+  font-size: 24rpx;
+  color: $color-primary;
+  background: $color-primary-bg;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.switchIcon {
+  font-size: 24rpx;
+  color: $color-text-secondary;
 }
 .loginBtn {
   flex: 1;

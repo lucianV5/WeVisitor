@@ -1,36 +1,28 @@
 <script setup lang="ts">
 import { getCurrentInstance } from 'vue'
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import type { Insider } from '@/types'
 import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
 import { syncTabBarActive } from '@/utils'
+import { useInfiniteList } from '@/composables/useInfiniteList'
 import EmptyState from '@/components/EmptyState/index.vue'
 import styles from './index.module.scss'
 
 const instance = getCurrentInstance()
 const userStore = useUserStore()
 const keyword = ref('')
-const list = ref<Insider[]>([])
-const loading = ref(false)
 const isAdmin = computed(() => userStore.user?.role === 'admin')
+
+const { list, loading, loadingMore, hasMore, fetchList, loadMore, setParams } = useInfiniteList<Insider>('getInsiders', {})
 
 const loadList = async () => {
   if (!userStore.user) {
     uni.stopPullDownRefresh()
     return
   }
-  loading.value = true
-  try {
-    const result = await callFunction<Insider[]>('getInsiders', { keyword: keyword.value })
-    list.value = result || []
-  } catch (err) {
-    console.error('[Insiders] load error:', err)
-    uni.showToast({ title: '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
-    uni.stopPullDownRefresh()
-  }
+  setParams({ keyword: keyword.value })
+  await fetchList(true)
 }
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -51,6 +43,7 @@ onShow(() => {
   loadList()
 })
 onPullDownRefresh(() => loadList())
+onReachBottom(() => loadMore())
 
 const handleAdd = () => {
   if (!isAdmin.value) {
@@ -136,6 +129,8 @@ const handleDelete = (item: Insider, e: Event) => {
           <view :class="styles.actionBtn" @tap="handleDelete(item, $event)">删除</view>
         </view>
       </view>
+      <view v-if="loadingMore" :class="styles.loadingMore">加载中...</view>
+      <view v-else-if="!hasMore && list.length > 0" :class="styles.noMore">没有更多了</view>
     </view>
   </view>
 </template>

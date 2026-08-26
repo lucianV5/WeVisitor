@@ -9,7 +9,9 @@ const loading = ref(true)
 
 const iconOf = (type: string) => {
   if (type === 'visit_approved' || type === 'insider_approved') return '✅'
-  return '❌'
+  if (type === 'visit_rejected' || type === 'insider_rejected' || type === 'visit_expired') return '❌'
+  if (type === 'new_visit') return '📋'
+  return '🔔'
 }
 
 onLoad(async () => {

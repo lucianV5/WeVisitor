@@ -1,7 +1,0 @@
-{
-  "name": "getMyInsiderApplication",
-  "version": "1.00",
-  "description": "访客预约系统-查询我的内部员工申请状态",
-  "main": "index.js",
-  "dependencies": {}
-}

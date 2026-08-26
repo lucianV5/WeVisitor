@@ -5,6 +5,7 @@ import { useUserStore } from '@/store/user'
 import type { Insider } from '@/types'
 import { callFunction } from '@/services/cloud'
 import { validatePhone, syncTabBarActive } from '@/utils'
+import { getApplicantTmplId } from '@/services/cloud'
 import EmptyState from '@/components/EmptyState/index.vue'
 import styles from './index.module.scss'
 
@@ -45,11 +46,11 @@ const prefillFromUser = () => {
   const user = userStore.user
   if (!user) return
   if (userStore.currentRole === 'visitor') {
-    form.visitorName = user.nickname
-    form.visitorPhone = user.phone
+    form.visitorName = user.name || ''
+    form.visitorPhone = user.phone || ''
   } else {
     form.hostId = user._id || ''
-    form.hostName = user.nickname
+    form.hostName = user.name || user.nickname || ''
     const idx = insiders.value.findIndex(i => i._id === user._id)
     if (idx >= 0) hostIndex.value = idx
   }
@@ -110,6 +111,19 @@ const handleSubmit = async () => {
     uni.showToast({ title: '请先登录', icon: 'none' })
     return
   }
+  if (!userStore.user.name?.trim() || !userStore.user.phone?.trim()) {
+    uni.showModal({
+      title: '提示',
+      content: '个人资料还未填写，请先完善真实姓名和手机号后再进行操作。',
+      confirmText: '去填写',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) uni.navigateTo({ url: '/pages/profile-edit/index' })
+      },
+    })
+    return
+  }
+
   submitting.value = true
   uni.showLoading({ title: '提交中...' })
   try {
@@ -118,9 +132,22 @@ const handleSubmit = async () => {
       ...form,
       hostName: hostInfo?.name || form.hostName,
       hostDepartment: hostInfo?.department,
+      submitterRole: userStore.currentRole || 'visitor',
     }
+
+    // #ifdef MP-WEIXIN
+    await new Promise<void>((resolve) => {
+      uni.requestSubscribeMessage({
+        tmplIds: [getApplicantTmplId()],
+        success: () => resolve(),
+        fail: () => resolve(),
+      })
+    })
+    // #endif
+
     await callFunction('createVisit', params)
     uni.hideLoading()
+    resetForm()
     uni.showModal({
       title: '提交成功',
       content: '预约信息已提交，请等待接待人确认',
@@ -174,8 +201,8 @@ const currentTime = () => {
 }
 const datePart = ref('')
 const timePart = ref('')
-const datePickerValue = computed(() => datePart.value || currentDate())
-const timePickerValue = computed(() => timePart.value || currentTime())
+const datePickerValue = computed(() => datePart.value)
+const timePickerValue = computed(() => timePart.value)
 const composeVisitDate = () => {
   onChange('visitDate', datePart.value && timePart.value ? `${datePart.value} ${timePart.value}` : '')
 }
@@ -186,6 +213,12 @@ const handleDateChange = (e: any) => {
 const handleTimeChange = (e: any) => {
   timePart.value = e.detail.value
   composeVisitDate()
+}
+const handleDateTap = () => {
+  if (!datePart.value) datePart.value = currentDate()
+}
+const handleTimeTap = () => {
+  if (!timePart.value) timePart.value = currentTime()
 }
 </script>
 
@@ -249,7 +282,7 @@ const handleTimeChange = (e: any) => {
           <text :class="styles.label">来访时间</text>
         </view>
         <view :class="styles.inputWrap">
-          <picker mode="date" :start="getToday()" :value="datePickerValue" @change="handleDateChange" :class="styles.pickerHalf">
+          <picker mode="date" :start="getToday()" :value="datePickerValue" @change="handleDateChange" @click="handleDateTap" :class="styles.pickerHalf">
             <view :class="styles.pickerInner">
               <text :class="styles.pickerPrefix">日期：</text>
               <text v-if="datePart" :class="styles.pickerValue">{{ datePart }}</text>
@@ -257,7 +290,7 @@ const handleTimeChange = (e: any) => {
             </view>
           </picker>
           <view :class="styles.pickerGap" />
-          <picker mode="time" :value="timePickerValue" @change="handleTimeChange" :class="styles.pickerHalf">
+          <picker mode="time" :value="timePickerValue" @change="handleTimeChange" @click="handleTimeTap" :class="styles.pickerHalf">
             <view :class="styles.pickerInner">
               <text :class="styles.pickerPrefix">时间：</text>
               <text v-if="timePart" :class="styles.pickerValue">{{ timePart }}</text>

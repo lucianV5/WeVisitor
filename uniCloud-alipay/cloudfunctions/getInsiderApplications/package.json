@@ -1,7 +1,0 @@
-{
-  "name": "getInsiderApplications",
-  "version": "1.00",
-  "description": "访客预约系统-管理员查询内部员工申请列表",
-  "main": "index.js",
-  "dependencies": {}
-}

@@ -86,6 +86,18 @@ const handleSubmit = async () => {
     uni.showToast({ title: '请先登录', icon: 'none' })
     return
   }
+  if (!userStore.user.name?.trim() || !userStore.user.phone?.trim()) {
+    uni.showModal({
+      title: '提示',
+      content: '个人资料还未填写，请先完善真实姓名和手机号后再进行操作。',
+      confirmText: '去填写',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) uni.navigateTo({ url: '/pages/profile-edit/index' })
+      },
+    })
+    return
+  }
   submitting.value = true
   uni.showLoading({ title: '提交中...' })
   try {

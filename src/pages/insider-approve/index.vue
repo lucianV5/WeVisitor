@@ -33,7 +33,7 @@ onShow(() => {
 })
 onPullDownRefresh(() => loadList())
 
-const handleAction = (item: any, action: 'approve' | 'reject') => {
+const handleAction = async (item: any, action: 'approve' | 'reject') => {
   const actionText = action === 'approve' ? '通过' : '拒绝'
   uni.showModal({
     title: '提示',

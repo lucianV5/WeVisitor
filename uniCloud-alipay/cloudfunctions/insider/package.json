@@ -1,0 +1,10 @@
+{
+  "name": "insider",
+  "version": "1.0.0",
+  "description": "Insider domain: getInsiders, createInsider, updateInsider, deleteInsider, applyInsider, getMyInsiderApplication, getInsiderApplications, handleInsiderApplication",
+  "main": "index.js",
+  "dependencies": {
+    "uni-config-center": "file:../common/uni-config-center",
+    "wevisitor-shared": "file:../common/wevisitor-shared"
+  }
+}

@@ -3,6 +3,44 @@
   background-color: $color-bg-page;
   padding-bottom: 200rpx;
 }
+.avatarRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl 0;
+  background: $color-bg-card;
+  margin-top: $spacing-md;
+}
+.avatarBtn {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  overflow: hidden;
+  line-height: normal;
+  background: $color-bg-page;
+  &::after {
+    border: none;
+  }
+}
+.avatarImg {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+}
+.avatarPlaceholder {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  background: #e5e6eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: #86909c;
+}
 .formCard {
   background: $color-bg-card;
   margin-top: $spacing-md;

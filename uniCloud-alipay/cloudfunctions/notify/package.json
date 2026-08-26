@@ -1,0 +1,10 @@
+{
+  "name": "notify",
+  "version": "1.0.0",
+  "description": "Notify domain: getMyNotifications, markNotificationsRead",
+  "main": "index.js",
+  "dependencies": {
+    "uni-config-center": "file:../common/uni-config-center",
+    "wevisitor-shared": "file:../common/wevisitor-shared"
+  }
+}

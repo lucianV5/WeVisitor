@@ -1,0 +1,9 @@
+{
+  "name": "wevisitor-shared",
+  "version": "1.0.0",
+  "description": "WeVisitor shared utilities for cloud functions",
+  "main": "index.js",
+  "dependencies": {
+    "uni-config-center": "file:../uni-config-center"
+  }
+}

@@ -30,6 +30,22 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.roleSwitchBtn {
+  padding: 8rpx 20rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+}
+
 .headerAvatar {
   width: 88rpx;
   height: 88rpx;
@@ -253,4 +269,10 @@
 
 .bottomSpace {
   height: calc(200rpx + env(safe-area-inset-bottom));
+}
+.loadingMore, .noMore {
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 24rpx;
+  color: #999;
 }

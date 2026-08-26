@@ -84,8 +84,11 @@ Component({
     _syncRole() {
       let role = ''
       try {
-        const user = wx.getStorageSync('wevisitor_user')
-        role = (user && user.role) || ''
+        role = wx.getStorageSync('wevisitor_active_role') || ''
+        if (!role) {
+          const user = wx.getStorageSync('wevisitor_user')
+          role = (user && user.role) || ''
+        }
       } catch (e) {}
       const tabs = role === 'admin' ? adminTabs : role === 'insider' ? employeeTabs : visitorTabs
       if (this.data.tabs !== tabs) this.setData({ tabs })

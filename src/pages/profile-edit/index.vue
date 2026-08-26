@@ -9,7 +9,9 @@ const isInternal = computed(() => user.value?.role === 'insider' || user.value?.
 
 const DEPARTMENTS = DEPARTMENT_OPTIONS.map(o => o.name)
 
+const avatarUrl = ref(user.value?.avatar || '')
 const nickname = ref(user.value?.nickname || '')
+const name = ref(user.value?.name || '')
 const phone = ref(user.value?.phone || '')
 const department = ref(user.value?.department || '')
 const saving = ref(false)
@@ -22,22 +24,30 @@ const handleDeptPick = (e: any) => {
   department.value = DEPARTMENTS[Number(e.detail.value)]
 }
 
-const onNicknameInput = (e: any) => {
-  nickname.value = e.detail.value
+const onChooseAvatar = (e: any) => {
+  if (e.detail.avatarUrl) {
+    avatarUrl.value = e.detail.avatarUrl
+  }
+}
+
+const onNameInput = (e: any) => {
+  name.value = e.detail.value
 }
 const onPhoneInput = (e: any) => {
   phone.value = e.detail.value
 }
 
 watch(user, () => {
+  avatarUrl.value = user.value?.avatar || ''
   nickname.value = user.value?.nickname || ''
+  name.value = user.value?.name || ''
   phone.value = user.value?.phone || ''
   department.value = user.value?.department || ''
 })
 
 const handleSave = async () => {
-  if (!nickname.value.trim()) {
-    uni.showToast({ title: '请输入昵称', icon: 'none' })
+  if (!name.value.trim()) {
+    uni.showToast({ title: '请输入真实姓名', icon: 'none' })
     return
   }
   if (!phone.value.trim()) {
@@ -52,9 +62,10 @@ const handleSave = async () => {
   uni.showLoading({ title: '保存中...' })
   try {
     const payload: Record<string, any> = {
-      nickname: nickname.value.trim(),
+      name: name.value.trim(),
       phone: phone.value.trim(),
     }
+    if (avatarUrl.value) payload.avatar = avatarUrl.value
     if (isInternal.value) payload.department = department.value
     const result = await userStore.updateUser(payload)
     uni.hideLoading()
@@ -76,18 +87,37 @@ const handleSave = async () => {
 
 <template>
   <view :class="styles.page">
+    <view :class="styles.avatarRow">
+      <button :class="styles.avatarBtn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
+        <image v-if="avatarUrl" :class="styles.avatarImg" :src="avatarUrl" mode="aspectFill" />
+        <view v-else :class="styles.avatarPlaceholder">
+          <text>+</text>
+        </view>
+      </button>
+    </view>
     <view :class="styles.formCard">
       <view :class="styles.formRow">
         <view :class="styles.formLabel">
-          <text :class="styles.required">*</text>
           <text>昵称：</text>
         </view>
         <input
           :class="styles.input"
-          placeholder="微信名称"
           :value="nickname"
+          disabled
+        />
+      </view>
+      <view :class="styles.formRow">
+        <view :class="styles.formLabel">
+          <text :class="styles.required">*</text>
+          <text>真实姓名：</text>
+        </view>
+        <input
+          :class="styles.input"
+          type="text"
+          placeholder="请输入真实姓名"
+          :value="name"
           maxlength="20"
-          @input="onNicknameInput"
+          @input="onNameInput"
         />
       </view>
       <view :class="styles.formRow">

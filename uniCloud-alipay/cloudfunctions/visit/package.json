@@ -1,0 +1,19 @@
+{
+  "name": "visit",
+  "version": "1.0.0",
+  "description": "Visit domain: getVisits, createVisit, updateVisitStatus, expireCheck",
+  "main": "index.js",
+  "dependencies": {
+    "uni-config-center": "file:../common/uni-config-center",
+    "wevisitor-shared": "file:../common/wevisitor-shared"
+  },
+  "cloudfunction-config": {
+    "triggers": [
+      {
+        "name": "expireCheck",
+        "type": "timer",
+        "config": "0 * * * * *"
+      }
+    ]
+  }
+}

@@ -1,7 +1,0 @@
-{
-  "name": "getUserInfo",
-  "version": "1.00",
-  "description": "访客预约系统-获取当前登录用户信息",
-  "main": "index.js",
-  "dependencies": {}
-}

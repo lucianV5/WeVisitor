@@ -1,41 +1,105 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/user'
+import { getHostTmplId, getApplicantTmplId } from '@/services/cloud'
 import type { UserRole } from '@/types'
 import styles from './index.module.scss'
 
 const userStore = useUserStore()
 
 const goHomeByRole = (role?: string) => {
-  const url =
-    role === 'insider' || role === 'admin' ? '/pages/workbench/index' : '/pages/visits/index'
-  uni.switchTab({ url })
+  if (role === 'insider' || role === 'admin') {
+    uni.switchTab({ url: '/pages/workbench/index' })
+  } else {
+    uni.switchTab({ url: '/pages/visits/index' })
+  }
 }
 
-onMounted(() => {
+const goInsiderApply = () => {
+  uni.redirectTo({ url: '/pages/insider-apply/index' })
+}
+
+const showRoleSelector = () => {
+  const roles = userStore.availableRoles
+  const items = roles.map(r => r === 'admin' ? '管理员' : r === 'insider' ? '内部员工' : '访客')
+  uni.showActionSheet({
+    itemList: items,
+    success: (res: any) => {
+      const selected = roles[res.tapIndex]
+      userStore.switchRole(selected)
+      goHomeByRole(selected)
+    },
+  })
+}
+
+onMounted(async () => {
   try {
     const savedRole = uni.getStorageSync('wevisitor_role') || uni.getStorageSync('currentRole')
     if (savedRole) userStore.setCurrentRole(savedRole as any)
   } catch (_) {}
   if (userStore.user) {
-    goHomeByRole(userStore.user.role)
+    const valid = await userStore.refreshUser()
+    if (valid) {
+      if (userStore.hasMultipleRoles) {
+        showRoleSelector()
+      } else {
+        goHomeByRole(userStore.currentRole)
+      }
+      return
+    }
+    userStore.logout()
+  }
+  if (userStore.isManualLogout) return
+  const savedRole = userStore.currentRole
+  if (savedRole) {
+    const result = await userStore.login({ silent: true })
+    if (result) {
+      if (userStore.hasMultipleRoles) {
+        showRoleSelector()
+      } else {
+        goHomeByRole(userStore.currentRole)
+      }
+      return
+    }
   }
 })
 
+const requestSubscribeOnLogin = (): Promise<void> => {
+  return new Promise((resolve) => {
+    // #ifdef MP-WEIXIN
+    uni.requestSubscribeMessage({
+      tmplIds: [getHostTmplId(), getApplicantTmplId()],
+      success: () => resolve(),
+      fail: () => resolve(),
+    })
+    // #endif
+    // #ifndef MP-WEIXIN
+    resolve()
+    // #endif
+  })
+}
+
 const handleLogin = async () => {
   console.log('[IndexPage] handleLogin')
-  const wantsInsider = userStore.currentRole === 'insider'
+  const selectedRole = userStore.currentRole
   uni.showLoading({ title: '登录中...' })
   try {
     const result = await userStore.login()
     uni.hideLoading()
     if (result) {
       uni.showToast({ title: '登录成功', icon: 'success' })
+      await requestSubscribeOnLogin()
+
+      const userRole = result.role
+      const isInsiderOrAdmin = userRole === 'insider' || userRole === 'admin'
+
       setTimeout(() => {
-        if (wantsInsider && result.role === 'visitor') {
-          uni.redirectTo({ url: '/pages/insider-apply/index' })
-          return
+        if (selectedRole === 'insider' && !isInsiderOrAdmin) {
+          goInsiderApply()
+        } else if (userStore.hasMultipleRoles) {
+          showRoleSelector()
+        } else {
+          goHomeByRole(userStore.currentRole)
         }
-        goHomeByRole(result.role)
       }, 600)
     } else {
       uni.showToast({ title: '登录失败，请重试', icon: 'none' })
@@ -70,7 +134,7 @@ const insiderIcon = '/static/login/insider.jpg'
         @tap="handleRoleChange('visitor')"
       >
         <view v-if="isVisitor" :class="styles.checkmark">✓</view>
-        <image :class="styles.roleIcon" :src="visitorIcon" mode="aspectFit" />
+        <image :class="styles.roleIcon" :src="visitorIcon" mode="aspectFill" />
         <text :class="[styles.roleName, isVisitor ? styles.roleNameActive : '']">我是访客</text>
       </view>
       <view
@@ -78,7 +142,7 @@ const insiderIcon = '/static/login/insider.jpg'
         @tap="handleRoleChange('insider')"
       >
         <view v-if="!isVisitor" :class="styles.checkmark">✓</view>
-        <image :class="styles.roleIcon" :src="insiderIcon" mode="aspectFit" />
+        <image :class="styles.roleIcon" :src="insiderIcon" mode="aspectFill" />
         <text :class="[styles.roleName, !isVisitor ? styles.roleNameActive : '']">内部人员</text>
       </view>
     </view>

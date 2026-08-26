@@ -1,7 +1,0 @@
-{
-  "name": "getVisits",
-  "version": "1.0.0",
-  "description": "访客预约系统-获取预约列表",
-  "main": "index.js",
-  "dependencies": {}
-}

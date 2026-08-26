@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { getCurrentInstance } from 'vue'
-import { onShow, onHide, onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onHide, onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import type { Visit, VisitStatus } from '@/types'
 import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
 import { syncTabBarActive, parseVisitTime } from '@/utils'
+import { useInfiniteList } from '@/composables/useInfiniteList'
 import VisitCard from '@/components/VisitCard/index.vue'
 import EmptyState from '@/components/EmptyState/index.vue'
 import styles from './index.module.scss'
@@ -21,9 +22,6 @@ const tabs: { key: VisitStatus | 'all'; label: string }[] = [
 
 const userStore = useUserStore()
 const activeTab = ref<VisitStatus | 'all'>('all')
-const list = ref<Visit[]>([])
-const loading = ref(false)
-const totalCount = ref(0)
 const initialStatusSet = ref(false)
 
 onLoad((q: any) => {
@@ -34,60 +32,35 @@ onLoad((q: any) => {
   }
 })
 
-const fetchList = async () => {
+const { list, loading, loadingMore, hasMore, total: totalCount, fetchList, loadMore, setParams } = useInfiniteList<Visit>('getVisits', {})
+
+const doFetch = async () => {
   if (!userStore.user) {
     uni.showToast({ title: '请先登录', icon: 'none' })
     uni.stopPullDownRefresh()
     return
   }
-  loading.value = true
-  try {
-    const r = userStore.user?.role
-    const params: Record<string, any> = {
-      role: r === 'admin' ? 'admin' : r === 'insider' ? 'insider' : 'visitor',
-      userId: userStore.user?._id || '',
-    }
-    if (activeTab.value !== 'all') {
-      params.status = activeTab.value
-    }
-    const result = await callFunction<Visit[]>('getVisits', params)
-    list.value = result || []
-    totalCount.value = list.value.length
-    console.log('[VisitsPage] fetched:', list.value.length)
-  } catch (err) {
-    console.error('[VisitsPage] fetch error:', err)
-    uni.showToast({ title: '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
-    uni.stopPullDownRefresh()
+  const r = userStore.user?.role
+  const params: Record<string, any> = {
+    role: r === 'admin' ? 'admin' : r === 'insider' ? 'insider' : 'visitor',
+    userId: userStore.user?._id || '',
   }
+  if (activeTab.value !== 'all') {
+    params.status = activeTab.value
+  }
+  setParams(params)
+  await fetchList(true)
 }
 
-watch(activeTab, () => fetchList())
+watch(activeTab, () => doFetch())
 
 const now = ref(Date.now())
 let tickTimer: ReturnType<typeof setInterval> | null = null
-
-const autoCompleteExpired = async () => {
-  const expired = list.value.filter(
-    v => v.status === 'approved' && !isNaN(parseVisitTime(v.visitDate)) && parseVisitTime(v.visitDate) <= now.value
-  )
-  if (!expired.length) return
-  for (const v of expired) {
-    try {
-      await callFunction('updateVisitStatus', { visitId: v._id, newStatus: 'completed' })
-    } catch (err) {
-      console.error('[VisitsPage] auto complete error:', err)
-    }
-  }
-  fetchList()
-}
 
 const startTick = () => {
   stopTick()
   tickTimer = setInterval(() => {
     now.value = Date.now()
-    autoCompleteExpired()
   }, 30000)
 }
 const stopTick = () => {
@@ -108,22 +81,20 @@ onShow(() => {
   } catch (_) {}
   if (userStore.user) {
     now.value = Date.now()
-    fetchList()
+    doFetch()
     startTick()
   } else {
     list.value = []
-    totalCount.value = 0
     uni.showToast({ title: '请先登录', icon: 'none' })
   }
 })
 
 onHide(() => stopTick())
 
-onPullDownRefresh(() => {
-  fetchList()
-})
+onPullDownRefresh(() => doFetch())
+onReachBottom(() => loadMore())
 
-const openDetail = (visit: Visit) => {
+const openDetail = async (visit: Visit) => {
   uni.navigateTo({ url: `/pages/visit-detail/index?id=${visit._id || ''}` })
 }
 
@@ -167,9 +138,11 @@ const updateStatus = async (visit: Visit, status: VisitStatus, extra?: Record<st
   }
 }
 
-const handleApprove = (visit: Visit) => updateStatus(visit, 'approved')
+const handleApprove = async (visit: Visit) => {
+  updateStatus(visit, 'approved')
+}
 
-const handleReject = (visit: Visit) => {
+const handleReject = async (visit: Visit) => {
   uni.showModal({
     title: '拒绝预约',
     editable: true,
@@ -252,7 +225,7 @@ const handleExport = () => {
       </view>
 
       <view v-if="userStore.currentRole !== 'visitor'" :class="styles.toolbar">
-        <text :class="styles.totalText">共{{ totalCount }}条访客记录</text>
+        <text :class="styles.totalText">访客记录</text>
         <view :class="styles.exportBtn" @tap="handleExport">导出</view>
       </view>
     </view>
@@ -272,6 +245,8 @@ const handleExport = () => {
         @reject="handleReject"
         @signIn="handleSignIn"
       />
+      <view v-if="loadingMore" :class="styles.loadingMore">加载中...</view>
+      <view v-else-if="!hasMore && list.length > 0" :class="styles.noMore">没有更多了</view>
     </view>
   </view>
 </template>

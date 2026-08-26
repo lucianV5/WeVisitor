@@ -1,0 +1,6 @@
+{
+  "name": "uni-config-center",
+  "version": "1.0.0",
+  "description": "WeVisitor shared configuration center",
+  "main": "index.js"
+}

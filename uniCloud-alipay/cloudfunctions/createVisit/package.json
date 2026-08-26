@@ -1,7 +1,0 @@
-{
-  "name": "createVisit",
-  "version": "1.0.0",
-  "description": "访客预约系统-创建预约记录",
-  "main": "index.js",
-  "dependencies": {}
-}

@@ -6,6 +6,18 @@ export type CloudResult<T = any> = {
   [k: string]: any
 }
 
+// 订阅消息模板 ID — 由 login 云函数返回，前端动态获取
+let _hostTmplId = 'yjIQuTyaTAHd0NHnhEcP4FSROEJGWKWvUPrI9CTjddc'
+let _applicantTmplId = 'ezMBbwj4xLjjtHNBL0keqQOMS6CtMZr4JFOP6KfGH9w'
+
+export const getHostTmplId = () => _hostTmplId
+export const getApplicantTmplId = () => _applicantTmplId
+
+export function setTmplIds(host?: string, applicant?: string) {
+  if (host) _hostTmplId = host
+  if (applicant) _applicantTmplId = applicant
+}
+
 const VALID_CALL_NAMES = [
   'login',
   'getUser',
@@ -24,13 +36,39 @@ const VALID_CALL_NAMES = [
   'handleInsiderApplication',
   'getMyNotifications',
   'markNotificationsRead',
+  // merged domain functions
+  'user',
+  'insider',
+  'visit',
+  'notify',
 ] as const
+
+// 旧云函数名 → 新域名云函数 + action 映射
+const FUNCTION_MAP: Record<string, { name: string; action: string }> = {
+  login: { name: 'user', action: 'login' },
+  getUser: { name: 'user', action: 'getUser' },
+  getUserInfo: { name: 'user', action: 'getUserInfo' },
+  updateUser: { name: 'user', action: 'updateUser' },
+  getInsiders: { name: 'insider', action: 'getInsiders' },
+  createInsider: { name: 'insider', action: 'createInsider' },
+  updateInsider: { name: 'insider', action: 'updateInsider' },
+  deleteInsider: { name: 'insider', action: 'deleteInsider' },
+  applyInsider: { name: 'insider', action: 'applyInsider' },
+  getMyInsiderApplication: { name: 'insider', action: 'getMyInsiderApplication' },
+  getInsiderApplications: { name: 'insider', action: 'getInsiderApplications' },
+  handleInsiderApplication: { name: 'insider', action: 'handleInsiderApplication' },
+  getVisits: { name: 'visit', action: 'getVisits' },
+  createVisit: { name: 'visit', action: 'createVisit' },
+  updateVisitStatus: { name: 'visit', action: 'updateVisitStatus' },
+  getMyNotifications: { name: 'notify', action: 'getMyNotifications' },
+  markNotificationsRead: { name: 'notify', action: 'markNotificationsRead' },
+}
 
 export type ValidCloudFunctionName = typeof VALID_CALL_NAMES[number]
 
-const UNICLOUD_PROVIDER = 'aliyun'
-const UNICLOUD_SPACE_ID = 'env-00jy6p4wnwnt'
-const UNICLOUD_CLIENT_SECRET = 'riAEEPMqT6oQAGtc'
+const UNICLOUD_PROVIDER = ''
+const UNICLOUD_SPACE_ID = ''
+const UNICLOUD_CLIENT_SECRET = ''
 const UNICLOUD_ROOT = 'uniCloud-alipay/cloudfunctions/'
 
 let _inited = false
@@ -124,6 +162,9 @@ export async function callFunction<T = any>(
   if (VALID_CALL_NAMES.indexOf(name as any) < 0) {
     console.warn(`[Cloud] 云函数名不在白名单中：${name}，仍尝试调用`)
   }
+  // 旧名 → 新域名云函数 + action 映射
+  const mapped = FUNCTION_MAP[name]
+  const cloudFnName = mapped ? mapped.name : name
   const uc = getUniCloud()
   const cfg = readManifestUniCloudConfig()
   if (!uc || typeof uc.callFunction !== 'function') {
@@ -134,6 +175,9 @@ export async function callFunction<T = any>(
   }
   try {
     const payload: Record<string, any> = Object.assign({}, data || {})
+    if (mapped) {
+      payload.action = mapped.action
+    }
     if (name === 'login') {
       payload.clientProvider = cfg.provider || ''
       payload.clientPlatform = (typeof __UNI_PLATFORM__ !== 'undefined') ? String(__UNI_PLATFORM__) : ''
@@ -154,16 +198,16 @@ export async function callFunction<T = any>(
       } catch (e) {}
     }
     const sdkArgs: Record<string, any> = {
-      name,
-      functionName: name,
-      method: name,
+      name: cloudFnName,
+      functionName: cloudFnName,
+      method: cloudFnName,
       action: 'callFunction',
       data: payload,
       params: payload,
       body: payload,
-      provider: cfg.provider,
-      spaceId: cfg.spaceId,
-      clientSecret: cfg.clientSecret,
+      provider: cfg.provider || undefined,
+      spaceId: cfg.spaceId || undefined,
+      clientSecret: cfg.clientSecret || undefined,
     }
 
     let raw: any = null
@@ -219,6 +263,10 @@ export async function callFunction<T = any>(
         console.error(`[Cloud] ${name} 云函数返回错误 code=${c}：`, errMsg, result, 'payload=', payload)
         throw new Error(errMsg)
       }
+      // login 云函数返回模板 ID，存入全局变量
+      if (name === 'login' && result.tmplIds) {
+        setTmplIds(result.tmplIds.host, result.tmplIds.applicant)
+      }
       return (result.data ?? null) as T
     }
     return result as T
@@ -228,12 +276,12 @@ export async function callFunction<T = any>(
     console.error(msg, 'payload=', Object.assign({}, data || {}))
     if (typeof rawMsg === 'string' && /FUNCTION_NOT_FOUND|not find|找不到|未部署|40000/i.test(rawMsg)) {
       throw new Error(
-        `云函数「${name}」未部署或入口不兼容（请升级部署）：在 HBuilderX 中右键 uniCloud-alipay/cloudfunctions/${name} → 上传并部署（云端安装依赖），保持 package.json main=index.js 再上传一次`
+        `云函数「${cloudFnName}」未部署或入口不兼容（请升级部署）：在 HBuilderX 中右键 uniCloud-alipay/cloudfunctions/${cloudFnName} → 上传并部署（云端安装依赖），保持 package.json main=index.js 再上传一次`
       )
     }
     if (typeof rawMsg === 'string' && matchFatalError(rawMsg)) {
       throw new Error(
-        `${rawMsg || '云端入口 Method name required'}：请 HBuilderX 打开项目根目录 → 右键 uniCloud-alipay/cloudfunctions/${name} → 重新上传并部署（云端安装依赖），确认 package.json main=index.js`
+        `${rawMsg || '云端入口 Method name required'}：请 HBuilderX 打开项目根目录 → 右键 uniCloud-alipay/cloudfunctions/${cloudFnName} → 重新上传并部署（云端安装依赖），确认 package.json main=index.js`
       )
     }
     throw new Error(rawMsg || msg)

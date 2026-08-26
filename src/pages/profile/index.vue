@@ -2,6 +2,7 @@
 import { getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
+import { callFunction } from '@/services/cloud'
 import { syncTabBarActive } from '@/utils'
 import styles from './index.module.scss'
 
@@ -17,27 +18,39 @@ onShow(async () => {
   }
 })
 
-const isVisitor = computed(() => {
-  const r = userStore.user?.role
-  return !r || r === 'visitor'
-})
-const isAdmin = computed(() => userStore.user?.role === 'admin')
-const isInsider = computed(() => !isVisitor.value)
+const activeRole = computed(() => userStore.currentRole)
+const isVisitor = computed(() => activeRole.value === 'visitor')
+const isAdmin = computed(() => activeRole.value === 'admin')
+const isInsider = computed(() => activeRole.value === 'insider')
 
 const visitorMenus = [
   { key: 'messages', icon: '🔔', label: '我的消息' },
   { key: 'edit', icon: '👤', label: '我的资料' },
   { key: 'applyInsider', icon: '🪪', label: '申请成为内部员工' },
 ]
+
 const insiderMenus = computed(() => {
-  const list = []
-  if (isAdmin.value) {
-    list.push({ key: 'insiders', icon: '👥', label: '内部人员管理' })
-    list.push({ key: 'approve', icon: '✅', label: '内部员工申请审批' })
-  }
-  list.push({ key: 'messages', icon: '🔔', label: '我的消息' })
-  list.push({ key: 'edit', icon: '👤', label: '我的资料' })
+  const list = [
+    { key: 'messages', icon: '🔔', label: '我的消息' },
+    { key: 'edit', icon: '👤', label: '我的资料' },
+  ]
   return list
+})
+
+const adminMenus = computed(() => {
+  const list = [
+    { key: 'insiders', icon: '👥', label: '内部人员管理' },
+    { key: 'approve', icon: '✅', label: '内部员工申请审批' },
+    { key: 'messages', icon: '🔔', label: '我的消息' },
+    { key: 'edit', icon: '👤', label: '我的资料' },
+  ]
+  return list
+})
+
+const currentMenus = computed(() => {
+  if (isVisitor.value) return visitorMenus
+  if (isAdmin.value) return adminMenus.value
+  return insiderMenus.value
 })
 
 const unread = ref(0)
@@ -91,7 +104,27 @@ const handleLogout = () => {
   })
 }
 
-const handleVisitorMenu = (key: string) => {
+const showRoleSwitcher = () => {
+  const roles = userStore.availableRoles
+  const items = roles.map(r => {
+    const label = r === 'admin' ? '管理员' : r === 'insider' ? '内部员工' : '访客'
+    return r === activeRole.value ? `${label}（当前）` : label
+  })
+  uni.showActionSheet({
+    itemList: items,
+    success: (res: any) => {
+      const selected = roles[res.tapIndex]
+      if (selected !== activeRole.value) {
+        userStore.switchRole(selected)
+        uni.showToast({ title: '已切换角色', icon: 'success' })
+        const targetUrl = selected === 'visitor' ? '/pages/visits/index' : '/pages/workbench/index'
+        setTimeout(() => uni.switchTab({ url: targetUrl }), 500)
+      }
+    },
+  })
+}
+
+const handleMenu = (key: string) => {
   if (!userStore.user) {
     uni.showToast({ title: '请先登录', icon: 'none' })
     return
@@ -108,31 +141,12 @@ const handleVisitorMenu = (key: string) => {
     uni.navigateTo({ url: '/pages/messages/index' })
     return
   }
-  if (key === 'myVisits') {
-    uni.switchTab({ url: '/pages/visits/index' })
-    return
-  }
-}
-
-const handleInsiderMenu = (key: string) => {
-  if (!userStore.user) {
-    uni.showToast({ title: '请先登录', icon: 'none' })
-    return
-  }
   if (key === 'insiders') {
     uni.switchTab({ url: '/pages/insiders/index' })
     return
   }
-  if (key === 'edit') {
-    uni.navigateTo({ url: '/pages/profile-edit/index' })
-    return
-  }
   if (key === 'approve') {
     uni.navigateTo({ url: '/pages/insider-approve/index' })
-    return
-  }
-  if (key === 'messages') {
-    uni.navigateTo({ url: '/pages/messages/index' })
     return
   }
 }
@@ -163,12 +177,24 @@ const handleGridTap = (key: string) => {
         <view :class="styles.userRow">
           <view :class="styles.avatar">
             <image
+              v-if="userStore.user.avatar"
               :class="styles.avatarImg"
-              :src="userStore.user.avatar || '/static/default-avatar.png'"
+              :src="userStore.user.avatar"
               mode="aspectFill"
             />
+            <view v-else :class="styles.avatarFallback">
+              {{ (userStore.user.nickname || '访')[0] }}
+            </view>
           </view>
-          <text :class="styles.userName">{{ userStore.user.nickname || '微信名称展示' }}</text>
+          <view :class="styles.userInfo">
+            <text :class="styles.userName">{{ userStore.user.nickname || '微信名称展示' }}</text>
+            <view v-if="userStore.hasMultipleRoles" :class="styles.roleSwitchRow" @tap="showRoleSwitcher">
+              <text :class="styles.roleTag">
+                {{ isAdmin ? '管理员' : isInsider ? '内部员工' : '访客' }}
+              </text>
+              <text :class="styles.switchIcon">切换 ›</text>
+            </view>
+          </view>
         </view>
       </template>
       <template v-else>
@@ -182,13 +208,27 @@ const handleGridTap = (key: string) => {
     </view>
 
     <template v-if="userStore.user">
-      <!-- Visitor view -->
-      <view v-if="isVisitor" :class="styles.menuCard">
+      <view v-if="isAdmin" :class="styles.managementCard">
+        <text :class="styles.managementTitle">访客记录审批管理</text>
+        <view :class="styles.grid">
+          <view
+            v-for="item in approvalGrid"
+            :key="item.key"
+            :class="styles.gridItem"
+            @tap="handleGridTap(item.key)"
+          >
+            <view :class="styles.gridIcon">{{ item.icon }}</view>
+            <text :class="styles.gridLabel">{{ item.label }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view :class="styles.menuCard">
         <view
-          v-for="(item, idx) in visitorMenus"
+          v-for="(item, idx) in currentMenus"
           :key="item.key"
-          :class="[styles.menuItem, idx < visitorMenus.length - 1 ? styles.withBorder : '']"
-          @tap="handleVisitorMenu(item.key)"
+          :class="[styles.menuItem, idx < currentMenus.length - 1 ? styles.withBorder : '']"
+          @tap="handleMenu(item.key)"
         >
           <view :class="styles.menuIcon">{{ item.icon }}</view>
           <text :class="styles.menuLabel">{{ item.label }}</text>
@@ -198,40 +238,6 @@ const handleGridTap = (key: string) => {
           <text :class="styles.menuArrow">›</text>
         </view>
       </view>
-
-      <!-- Insider view -->
-      <template v-else>
-        <view v-if="isAdmin" :class="styles.managementCard">
-          <text :class="styles.managementTitle">访客记录审批管理</text>
-          <view :class="styles.grid">
-            <view
-              v-for="item in approvalGrid"
-              :key="item.key"
-              :class="styles.gridItem"
-              @tap="handleGridTap(item.key)"
-            >
-              <view :class="styles.gridIcon">{{ item.icon }}</view>
-              <text :class="styles.gridLabel">{{ item.label }}</text>
-            </view>
-          </view>
-        </view>
-
-        <view :class="styles.menuCard">
-          <view
-            v-for="(item, idx) in insiderMenus"
-            :key="item.key"
-            :class="[styles.menuItem, idx < insiderMenus.length - 1 ? styles.withBorder : '']"
-            @tap="handleInsiderMenu(item.key)"
-          >
-            <view :class="styles.menuIcon">{{ item.icon }}</view>
-            <text :class="styles.menuLabel">{{ item.label }}</text>
-            <text v-if="item.key === 'messages' && unread > 0" :class="styles.unreadBadge">
-              {{ unread > 99 ? '99+' : unread }}
-            </text>
-            <text :class="styles.menuArrow">›</text>
-          </view>
-        </view>
-      </template>
 
       <view :class="styles.footer">
         <button :class="styles.logoutBtn" @click="handleLogout">退出登录</button>

@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { getCurrentInstance } from 'vue'
-import { onShow, onHide, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onHide, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import type { Visit } from '@/types'
 import { useUserStore } from '@/store/user'
-import { callFunction } from '@/services/cloud'
+import { callFunction, getHostTmplId, getApplicantTmplId } from '@/services/cloud'
 import { formatDate, syncTabBarActive, getCountdownText, parseVisitTime } from '@/utils'
+import { useInfiniteList } from '@/composables/useInfiniteList'
 import styles from './index.module.scss'
 
 const instance = getCurrentInstance()
 const userStore = useUserStore()
 
-const list = ref<Visit[]>([])
-const loading = ref(false)
 const activeTab = ref<'pending' | 'approved'>('pending')
+const { list, loading, loadingMore, hasMore, fetchList: fetchVisits, loadMore: loadMoreVisits, setParams: setVisitParams } = useInfiniteList<Visit>('getVisits', {})
 
 const headerPaddingTop = ref(64)
 try {
@@ -24,8 +24,10 @@ try {
   } catch (_) {}
 }
 
-const roleText = computed(() => (userStore.user?.role === 'admin' ? '管理员' : '员工'))
-const isAdmin = computed(() => userStore.user?.role === 'admin')
+const activeRole = computed(() => userStore.currentRole)
+const isAdmin = computed(() => activeRole.value === 'admin')
+const isInsider = computed(() => activeRole.value === 'insider')
+const roleText = computed(() => isAdmin.value ? '管理员' : '内部员工')
 
 const pendingCount = computed(() => list.value.filter(v => v.status === 'pending').length)
 const approvedCount = computed(() =>
@@ -41,21 +43,13 @@ const tabList = computed(() =>
 )
 
 const fetchList = async () => {
-  loading.value = true
-  try {
-    const res = await callFunction<Visit[]>('getVisits', {
-      role: userStore.user?.role === 'admin' ? 'admin' : 'insider',
-      userId: userStore.user?._id || '',
-    })
-    list.value = res || []
-    console.log('[Workbench] fetched list statuses:', list.value.map(v => `${v._id}:${v.status}:${v.visitDate}`))
-  } catch (err) {
-    console.error('[Workbench] fetch error:', err)
-    uni.showToast({ title: '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
-    uni.stopPullDownRefresh()
-  }
+  if (!isInsider.value) return
+  setVisitParams({
+    role: 'insider',
+    userId: userStore.user?._id || '',
+  })
+  await fetchVisits(true)
+  uni.stopPullDownRefresh()
 }
 
 const now = ref(Date.now())
@@ -98,20 +92,37 @@ onShow(async () => {
     const changed = await userStore.refreshUser()
     if (changed) syncTabBarActive(instance, '/pages/workbench/index')
     now.value = Date.now()
-    fetchList()
-    fetchApplications()
-    startTick()
+    if (isInsider.value) {
+      fetchList()
+      startTick()
+    }
+    if (isAdmin.value) {
+      fetchApplications()
+    }
   }
 })
 
 onHide(() => stopTick())
 
 onPullDownRefresh(() => {
-  fetchList()
-  fetchApplications()
+  if (isInsider.value) fetchList()
+  if (isAdmin.value) fetchApplications()
+})
+onReachBottom(() => {
+  if (isInsider.value) loadMoreVisits()
+  if (isAdmin.value) fetchApplications(false)
 })
 
 const updateStatus = async (visit: Visit, newStatus: 'approved' | 'rejected', extra?: Record<string, any>) => {
+  // #ifdef MP-WEIXIN
+  await new Promise<void>((resolve) => {
+    uni.requestSubscribeMessage({
+      tmplIds: [getHostTmplId(), getApplicantTmplId()],
+      success: () => resolve(),
+      fail: () => resolve(),
+    })
+  })
+  // #endif
   try {
     await callFunction('updateVisitStatus', {
       visitId: visit._id,
@@ -148,18 +159,125 @@ const goSupplement = () => uni.navigateTo({ url: '/pages/visit-supplement/index'
 const goInsiders = () => uni.switchTab({ url: '/pages/insiders/index' })
 const goRecords = () => uni.switchTab({ url: '/pages/visits/index' })
 
+const enableNotifications = () => {
+  // #ifdef MP-WEIXIN
+  const hostId = getHostTmplId()
+  const applicantId = getApplicantTmplId()
+  uni.showModal({
+    title: '开启消息提醒',
+    content: '请在弹窗中勾选"总是保持以上选择"并点击"允许"，系统将自动积累通知额度。',
+    confirmText: '知道了',
+    showCancel: false,
+    success: () => {
+      uni.requestSubscribeMessage({
+        tmplIds: [hostId, applicantId],
+        success: (res: any) => {
+          const hostOk = res[hostId] === 'accept'
+          const applicantOk = res[applicantId] === 'accept'
+          if (!hostOk && !applicantOk) {
+            uni.showToast({ title: '未开启通知', icon: 'none' })
+            return
+          }
+          uni.showLoading({ title: '积累额度中...' })
+          let count = 1
+          let failed = 0
+          const loop = (remaining: number) => {
+            if (remaining <= 0) {
+              uni.hideLoading()
+              uni.showModal({
+                title: '通知额度已积累',
+                content: `本次共积累 ${count} 次通知额度。\n建议每天打开小程序点一次"开启通知"保持额度充足。`,
+                showCancel: false,
+                confirmText: '好的',
+              })
+              return
+            }
+            uni.requestSubscribeMessage({
+              tmplIds: [hostId, applicantId],
+              success: () => {
+                count++
+                failed = 0
+                setTimeout(() => loop(remaining - 1), 50)
+              },
+              fail: () => {
+                failed++
+                if (failed >= 2) {
+                  uni.hideLoading()
+                  uni.showModal({
+                    title: '通知额度已积累',
+                    content: `本次共积累 ${count} 次通知额度。\n建议每天打开小程序点一次"开启通知"保持额度充足。`,
+                    showCancel: false,
+                    confirmText: '好的',
+                  })
+                } else {
+                  setTimeout(() => loop(remaining - 1), 50)
+                }
+              },
+            })
+          }
+          loop(49)
+        },
+        fail: (err: any) => {
+          const errMsg = String(err?.errMsg || err?.message || err || '')
+          let tip = '授权失败'
+          if (/always/.test(errMsg) || /20004/.test(errMsg)) {
+            tip = '您之前选择了"总是拒绝"，请前往微信设置 → 隐私 → 授权管理中重置'
+          } else if (/invalid|template|tmpl/i.test(errMsg)) {
+            tip = '模板ID无效，请检查模板是否已审核通过'
+          } else if (errMsg) {
+            tip = errMsg.slice(0, 60)
+          }
+          uni.showModal({ title: '开启通知失败', content: tip, showCancel: false })
+        },
+      })
+    },
+  })
+  // #endif
+}
+
 const appList = ref<any[]>([])
 const appActiveTab = ref<'pending' | 'approved' | 'rejected'>('pending')
+const appLoading = ref(false)
+const appLoadingMore = ref(false)
+const appHasMore = ref(true)
+const appPage = ref(1)
 const appTabList = computed(() => appList.value.filter(a => a.status === appActiveTab.value))
 const appPendingCount = computed(() => appList.value.filter(a => a.status === 'pending').length)
 
-const fetchApplications = async () => {
-  if (userStore.user?.role !== 'admin') return
+const fetchApplications = async (reset = true) => {
+  if (!isAdmin.value) return
+  if (reset) {
+    appPage.value = 1
+    appHasMore.value = true
+    appLoading.value = true
+  } else {
+    if (appLoadingMore.value || !appHasMore.value) return
+    appLoadingMore.value = true
+  }
   try {
-    const result = await callFunction<any[]>('getInsiderApplications', {})
-    appList.value = result || []
+    const result = await callFunction<{ list: any[]; total: number; hasMore: boolean }>('getInsiderApplications', {
+      page: appPage.value,
+      pageSize: 20,
+    })
+    if (result) {
+      if (Array.isArray(result)) {
+        if (reset) appList.value = result
+        appHasMore.value = false
+      } else {
+        if (reset) appList.value = result.list || []
+        else appList.value = [...appList.value, ...(result.list || [])]
+        appHasMore.value = !!result.hasMore
+        appPage.value++
+      }
+    } else {
+      appHasMore.value = false
+    }
   } catch (err) {
     console.error('[Workbench] fetch applications error:', err)
+  } finally {
+    appLoading.value = false
+    appLoadingMore.value = false
+    uni.stopPullDownRefresh()
   }
 }
 
@@ -181,6 +299,33 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
     },
   })
 }
+
+const showRoleSwitcher = () => {
+  const roles = userStore.availableRoles
+  const items = roles.map(r => {
+    const label = r === 'admin' ? '管理员' : r === 'insider' ? '内部员工' : '访客'
+    return r === activeRole.value ? `${label}（当前）` : label
+  })
+  uni.showActionSheet({
+    itemList: items,
+    success: (res: any) => {
+      const selected = roles[res.tapIndex]
+      if (selected !== activeRole.value) {
+        userStore.switchRole(selected)
+        uni.showToast({ title: '已切换角色', icon: 'success' })
+        setTimeout(() => {
+          if (isInsider.value) {
+            fetchList()
+            startTick()
+          }
+          if (isAdmin.value) {
+            fetchApplications()
+          }
+        }, 300)
+      }
+    },
+  })
+}
 </script>
 
 <template>
@@ -190,16 +335,45 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
         <text :class="styles.headerTitle">访客预约审批小程序</text>
         <text :class="styles.headerSubtitle">内部人员端 · {{ roleText }}</text>
       </view>
-      <image
-        v-if="userStore.user?.avatar"
-        :class="styles.headerAvatar"
-        :src="userStore.user.avatar"
-        mode="aspectFill"
-      />
-      <view v-else :class="styles.headerAvatar">{{ (userStore.user?.nickname || '访')[0] }}</view>
+      <view :class="styles.headerRight">
+        <view v-if="userStore.hasMultipleRoles" :class="styles.roleSwitchBtn" @tap="showRoleSwitcher">
+          <text>切换角色</text>
+        </view>
+        <image
+          v-if="userStore.user?.avatar"
+          :class="styles.headerAvatar"
+          :src="userStore.user.avatar"
+          mode="aspectFill"
+        />
+        <view v-else :class="styles.headerAvatar">{{ (userStore.user?.nickname || '访')[0] }}</view>
+      </view>
     </view>
 
+    <!-- 快捷操作 -->
     <view :class="styles.card">
+      <text :class="styles.cardTitle">快捷操作</text>
+      <view :class="styles.quickGrid">
+        <view :class="styles.quickItem" @tap="enableNotifications">
+          <view :class="styles.quickIcon">🔔</view>
+          <text :class="styles.quickLabel">开启通知</text>
+        </view>
+        <view v-if="isInsider" :class="styles.quickItem" @tap="goSupplement">
+          <view :class="styles.quickIcon">📝</view>
+          <text :class="styles.quickLabel">访客补录</text>
+        </view>
+        <view v-if="isAdmin" :class="styles.quickItem" @tap="goInsiders">
+          <view :class="styles.quickIcon">👥</view>
+          <text :class="styles.quickLabel">内部人员管理</text>
+        </view>
+        <view :class="styles.quickItem" @tap="goRecords">
+          <view :class="styles.quickIcon">📊</view>
+          <text :class="styles.quickLabel">审批记录</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 内部员工角色：访客预约审批 -->
+    <view v-if="isInsider" :class="styles.card">
       <view :class="styles.cardHeader">
         <text :class="styles.cardTitle">预约管理</text>
         <view :class="styles.tabs">
@@ -207,13 +381,13 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
             :class="[styles.tab, activeTab === 'pending' ? styles.tabActive : '']"
             @tap="activeTab = 'pending'"
           >
-            待审批 ({{ pendingCount }})
+            待审批
           </view>
           <view
             :class="[styles.tab, activeTab === 'approved' ? styles.tabActive : '']"
             @tap="activeTab = 'approved'"
           >
-            已批准 ({{ approvedCount }})
+            已批准
           </view>
         </view>
       </view>
@@ -263,8 +437,11 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
           <button :class="styles.approveBtn" @tap="handleApprove(visit)">批准</button>
         </view>
       </view>
+      <view v-if="loadingMore" :class="styles.loadingMore">加载中...</view>
+      <view v-else-if="!hasMore && list.length > 0" :class="styles.noMore">没有更多了</view>
     </view>
 
+    <!-- 管理员角色：员工申请管理 -->
     <view v-if="isAdmin" :class="styles.card">
       <view :class="styles.cardHeader">
         <text :class="styles.cardTitle">员工申请管理</text>
@@ -273,7 +450,7 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
             :class="[styles.tab, appActiveTab === 'pending' ? styles.tabActive : '']"
             @tap="appActiveTab = 'pending'"
           >
-            待审批 ({{ appPendingCount }})
+            待审批
           </view>
           <view
             :class="[styles.tab, appActiveTab === 'approved' ? styles.tabActive : '']"
@@ -327,24 +504,8 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
           <button :class="styles.approveBtn" @tap="handleAppAction(app, 'approve')">通过</button>
         </view>
       </view>
-    </view>
-
-    <view :class="styles.card">
-      <text :class="styles.cardTitle">快捷操作</text>
-      <view :class="styles.quickGrid">
-        <view :class="styles.quickItem" @tap="goSupplement">
-          <view :class="styles.quickIcon">📝</view>
-          <text :class="styles.quickLabel">访客补录</text>
-        </view>
-        <view v-if="isAdmin" :class="styles.quickItem" @tap="goInsiders">
-          <view :class="styles.quickIcon">👥</view>
-          <text :class="styles.quickLabel">内部人员管理</text>
-        </view>
-        <view :class="styles.quickItem" @tap="goRecords">
-          <view :class="styles.quickIcon">📊</view>
-          <text :class="styles.quickLabel">审批记录</text>
-        </view>
-      </view>
+      <view v-if="appLoadingMore" :class="styles.loadingMore">加载中...</view>
+      <view v-else-if="!appHasMore && appList.length > 0" :class="styles.noMore">没有更多了</view>
     </view>
 
     <view :class="styles.bottomSpace" />

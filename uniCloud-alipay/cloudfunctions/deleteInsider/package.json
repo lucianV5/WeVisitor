@@ -1,7 +1,0 @@
-{
-  "name": "deleteInsider",
-  "version": "1.00",
-  "description": "访客预约系统-删除内部人员",
-  "main": "index.js",
-  "dependencies": {}
-}
