@@ -49,6 +49,11 @@ export const useUserStore = defineStore('user', () => {
   const switchRole = (role: UserRole) => {
     if (!availableRoles.value.includes(role)) return
     currentRole.value = role
+    try {
+      uni.setStorageSync(STORAGE_ROLE_KEY, role)
+      uni.setStorageSync(STORAGE_ACTIVE_ROLE_KEY, role)
+    } catch (_) {}
+    uni.$emit('roleChanged', role)
   }
 
   const hasMultipleRoles = computed(() => availableRoles.value.length > 1)
@@ -57,15 +62,17 @@ export const useUserStore = defineStore('user', () => {
     user.value = null
     currentRole.value = 'visitor'
     availableRoles.value = ['visitor']
+    isManualLogout.value = true
     try {
       uni.setStorageSync(MANUAL_LOGOUT_KEY, true)
       uni.removeStorageSync(STORAGE_ACTIVE_ROLE_KEY)
     } catch (_) {}
   }
 
-  const login = async (options?: { skipProfile?: boolean; silent?: boolean; name?: string; phone?: string }): Promise<User | null> => {
+  const login = async (options?: { skipProfile?: boolean; silent?: boolean; name?: string; phone?: string; selectedRole?: string }): Promise<User | null> => {
     if (loading.value) return null
     loading.value = true
+    isManualLogout.value = false
     try { uni.removeStorageSync(MANUAL_LOGOUT_KEY) } catch (_) {}
     const silent = options?.silent === true
     const envPlatform: string | undefined = (typeof __UNI_PLATFORM__ !== 'undefined') ? (__UNI_PLATFORM__ as any) : undefined
@@ -80,6 +87,7 @@ export const useUserStore = defineStore('user', () => {
     const loginParams: Record<string, any> = {}
     if (options?.name) loginParams.name = options.name
     if (options?.phone) loginParams.phone = options.phone
+    if (options?.selectedRole) loginParams.selectedRole = options.selectedRole
     try {
 
       if (isWeapp && typeof uni.login === 'function') {
@@ -121,45 +129,6 @@ export const useUserStore = defineStore('user', () => {
         } else {
           currentRole.value = availableRoles.value[0] || 'visitor'
         }
-
-        // #ifdef MP-WEIXIN
-        if (!silent) {
-          try {
-            const hostId = getHostTmplId()
-            const applicantId = getApplicantTmplId()
-            if (hostId || applicantId) {
-              const tmplIds = [hostId, applicantId].filter(Boolean) as string[]
-              let count = 0
-              let failed = 0
-              const loop = (remaining: number) => {
-                if (remaining <= 0) {
-                  console.log('[UserStore] subscribe quota accumulated:', count)
-                  return
-                }
-                uni.requestSubscribeMessage({
-                  tmplIds,
-                  success: () => {
-                    count++
-                    failed = 0
-                    setTimeout(() => loop(remaining - 1), 50)
-                  },
-                  fail: () => {
-                    failed++
-                    if (failed >= 2) {
-                      console.log('[UserStore] subscribe quota stopped at:', count)
-                      return
-                    }
-                    setTimeout(() => loop(remaining - 1), 50)
-                  },
-                })
-              }
-              loop(49)
-            }
-          } catch (e) {
-            console.warn('[UserStore] requestSubscribeMessage error:', e)
-          }
-        }
-        // #endif
 
         return result
       }
@@ -206,10 +175,10 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  const refreshUser = async (): Promise<boolean> => {
+  const refreshUser = async (): Promise<boolean | null> => {
     try {
       const fresh = await callFunction<User>('getUserInfo', {})
-      if (!fresh) return false
+      if (!fresh) return null
       const old = user.value
       const changed =
         !old ||
@@ -230,14 +199,13 @@ export const useUserStore = defineStore('user', () => {
       return changed
     } catch (err) {
       console.error('[UserStore] refreshUser error:', err)
-      return false
+      return null
     }
   }
 
   const isLoggedIn = computed(() => !!user.value)
-  const isManualLogout = computed(() => {
-    try { return !!uni.getStorageSync(MANUAL_LOGOUT_KEY) } catch (_) { return false }
-  })
+  const isManualLogout = ref(false)
+  try { isManualLogout.value = !!uni.getStorageSync(MANUAL_LOGOUT_KEY) } catch (_) {}
 
   return {
     user,

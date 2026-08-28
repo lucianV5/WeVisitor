@@ -17,40 +17,49 @@ onLaunch(() => {
   } catch (_) {}
 })
 
-onShow(() => {
+onShow(async () => {
   const store = useUserStore()
   if (store.user) {
-    console.log('[App] onShow restored user:', store.user.nickname)
-    // #ifdef MP-WEIXIN
-    const hostId = getHostTmplId()
-    const applicantId = getApplicantTmplId()
-    if (hostId || applicantId) {
-      const tmplIds = [hostId, applicantId].filter(Boolean) as string[]
-      let count = 0
-      let failed = 0
-      const loop = (remaining: number) => {
-        if (remaining <= 0) {
-          console.log('[App] onShow subscribe quota accumulated:', count)
-          return
+    uni.showLoading({ title: '验证中...', mask: true })
+    console.log('[App] onShow validating user:', store.user.nickname)
+    const result = await store.refreshUser()
+    uni.hideLoading()
+    console.log('[App] onShow refreshUser result:', result)
+    if (result === null) {
+      console.log('[App] onShow user invalid (deleted?), redirecting to login')
+      store.logout()
+      uni.reLaunch({ url: '/pages/index/index' })
+      return
+    }
+    if (result === true) {
+      console.log('[App] onShow user data changed, role:', store.user?.role)
+      const role = store.user?.role
+      if (role !== 'insider' && role !== 'admin') {
+        const currentPages = getCurrentPages()
+        const currentPage = currentPages[currentPages.length - 1]
+        const currentRoute = currentPage ? '/' + currentPage.route : ''
+        if (currentRoute === '/pages/workbench/index' || currentRoute === '/pages/insiders/index') {
+          uni.switchTab({ url: '/pages/visits/index' })
         }
-        uni.requestSubscribeMessage({
-          tmplIds,
-          success: () => {
-            count++
-            failed = 0
-            setTimeout(() => loop(remaining - 1), 50)
-          },
-          fail: () => {
-            failed++
-            if (failed >= 2) {
-              console.log('[App] onShow subscribe quota stopped at:', count)
-              return
-            }
-            setTimeout(() => loop(remaining - 1), 50)
-          },
-        })
       }
-      loop(49)
+    }
+    // #ifdef MP-WEIXIN
+    if (uni.getStorageSync('wevisitor_notify_authorized')) {
+      const hostId = getHostTmplId()
+      const applicantId = getApplicantTmplId()
+      if (hostId || applicantId) {
+        const tmplIds = [hostId, applicantId].filter(Boolean) as string[]
+        let failed = 0
+        const loop = (remaining: number) => {
+          if (remaining <= 0) return
+          uni.requestSubscribeMessage({
+            tmplIds,
+            success: () => { failed = 0; setTimeout(() => loop(remaining - 1), 50) },
+            fail: () => { failed++; if (failed >= 2) return; setTimeout(() => loop(remaining - 1), 50) },
+          })
+        }
+        loop(49)
+      }
     }
     // #endif
   }

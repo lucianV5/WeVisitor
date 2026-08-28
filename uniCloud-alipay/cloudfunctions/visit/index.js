@@ -61,31 +61,12 @@ async function getVisitsAction(event, context) {
         where._openid = '__none__';
       }
     } else if (effectiveRole !== 'admin') {
-      // insider: match by hostId or hostName
+      // insider: match only current user's records by hostId
       const hostIds = [];
       if (userId) hostIds.push(userId);
       if (openid) hostIds.push(openid);
-      let hostNameForMatch = '';
-      try {
-        const uRes = await db.collection('users').where({ _openid: openid }).limit(1).get();
-        const u = uRes.data && uRes.data[0];
-        if (u) {
-          hostNameForMatch = u.name || u.nickname || '';
-          if (u.name) {
-            const nRes = await db.collection('users').where({ name: u.name, role: cmd.in(['insider', 'admin']) }).limit(20).get();
-            (nRes.data || []).forEach(i => {
-              if (i._id && hostIds.indexOf(i._id) < 0) hostIds.push(i._id);
-            });
-          }
-        }
-      } catch (e) {
-        console.error('[visit:getVisits] resolve insider identity error:', e);
-      }
-      const orConds = [];
-      if (hostIds.length) orConds.push({ hostId: cmd.in(hostIds) });
-      if (hostNameForMatch) orConds.push({ hostName: hostNameForMatch });
-      where = orConds.length
-        ? cmd.and([baseWhere, cmd.or(orConds)])
+      where = hostIds.length
+        ? cmd.and([baseWhere, { hostId: cmd.in(hostIds) }])
         : Object.assign({}, baseWhere, { hostId: '__none__' });
     }
 
@@ -150,6 +131,7 @@ async function getVisitsAction(event, context) {
             try {
               await db.collection('notifications').add({
                 _openid: v._openid,
+                targetRole: 'visitor',
                 type: 'visit_expired',
                 title: '预约已过期',
                 content: `您${v.visitDate || ''}的访客预约因来访时间已过被自动取消，请重新申请。`,
@@ -181,6 +163,7 @@ async function getVisitsAction(event, context) {
             try {
               await db.collection('notifications').add({
                 _openid: hostOpenid,
+                targetRole: 'insider',
                 type: 'visit_expired',
                 title: '访客预约已过期',
                 content: `${v.visitorName || '访客'}的预约（${v.visitDate || ''}）因来访时间已过自动取消。`,
@@ -325,6 +308,7 @@ async function createVisitAction(event, context) {
           console.log('[visit:createVisit] sendSubscribeMsg returned');
           await db.collection('notifications').add({
             _openid: hostOpenid,
+            targetRole: 'insider',
             type: 'new_visit',
             title: '新的访客预约',
             content: `${visitorName} 预约了 ${visitDate} 的访问，请及时审核。`,
@@ -345,6 +329,7 @@ async function createVisitAction(event, context) {
             await sendSubscribeMsg(adminOpenid, tplData, `pages/workbench/index`, HOST_TMPL_ID, config);
             await db.collection('notifications').add({
               _openid: adminOpenid,
+              targetRole: 'admin',
               type: 'new_visit',
               title: '新的访客预约',
               content: `${visitorName}（内部人员）预约了 ${visitDate} 的访问，请及时审核。`,
@@ -433,6 +418,7 @@ async function updateVisitStatusAction(event, context) {
           : { type: 'visit_rejected', title: '预约已被拒绝', content: `您${dateText}的访客预约未通过审批${rejectReason ? '，原因：' + rejectReason : ''}。` };
         await db.collection('notifications').add({
           _openid: applicantOpenid,
+          targetRole: 'visitor',
           type: note.type,
           title: note.title,
           content: note.content,
@@ -557,15 +543,139 @@ async function expireCheckAction() {
   }
 }
 
+// ====== Action: getVisitQRCode ======
+async function getVisitQRCodeAction(event, context) {
+  const appid = (config.wx && config.wx.appid) || '';
+  const secret = process.env.WX_SECRET || '';
+  if (!appid || !secret) {
+    return { code: 500, data: null, msg: '缺少 wx.appid 或 WX_SECRET 环境变量' };
+  }
+
+  try {
+    const uniCloudAny = typeof uniCloud !== 'undefined' ? uniCloud : null;
+    const httpClient = uniCloudAny && uniCloudAny.httpclient;
+    if (!httpClient || typeof httpClient.request !== 'function') {
+      return { code: 500, data: null, msg: 'uniCloud.httpclient 不可用' };
+    }
+
+    const tokenUrl = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${encodeURIComponent(appid)}&secret=${encodeURIComponent(secret)}`;
+    const tokenResp = await httpClient.request(tokenUrl, { method: 'GET', dataType: 'json', timeout: 10000 });
+    const tokenData = (tokenResp && (tokenResp.data || tokenResp.result)) || tokenResp || {};
+    const accessToken = tokenData.access_token || '';
+    if (!accessToken) {
+      return { code: 500, data: null, msg: `获取 access_token 失败: ${tokenData.errmsg || JSON.stringify(tokenData)}` };
+    }
+
+    const qrUrl = `https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=${encodeURIComponent(accessToken)}`;
+    const qrResp = await httpClient.request(qrUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({ scene: 'vr', page: 'pages/index/index' }),
+      timeout: 10000,
+    });
+
+    const respData = (qrResp && (qrResp.data || qrResp.result)) || qrResp;
+
+    if (respData && typeof respData === 'object' && !Buffer.isBuffer(respData) && respData.errcode) {
+      return { code: 500, data: null, msg: `生成小程序码失败: errcode=${respData.errcode} errmsg=${respData.errmsg || ''}` };
+    }
+    if (typeof respData === 'string') {
+      try {
+        const parsed = JSON.parse(respData);
+        if (parsed.errcode) {
+          return { code: 500, data: null, msg: `生成小程序码失败: errcode=${parsed.errcode} errmsg=${parsed.errmsg || ''}` };
+        }
+      } catch (_) {
+        // not JSON, treat as binary
+      }
+    }
+
+    let buffer = null;
+    if (Buffer.isBuffer(respData)) {
+      buffer = respData;
+    } else if (respData && typeof respData === 'object' && respData.type === 'Buffer' && Array.isArray(respData.data)) {
+      buffer = Buffer.from(respData.data);
+    } else if (typeof respData === 'string') {
+      buffer = Buffer.from(respData, 'base64');
+    }
+
+    if (!buffer || buffer.length === 0) {
+      return { code: 500, data: null, msg: '生成小程序码返回空数据' };
+    }
+
+    const base64 = buffer.toString('base64');
+    return { code: 0, msg: 'ok', data: `data:image/png;base64,${base64}` };
+  } catch (err) {
+    console.error('[visit:getVisitQRCode] error:', err);
+    return { code: 500, data: null, msg: `生成二维码失败: ${err.message || err}` };
+  }
+}
+
+// ====== Action: deleteVisit ======
+async function deleteVisitAction(event, context) {
+  const db = uniCloud.database();
+  const visitsCol = db.collection('visits');
+  const dbCmd = db.command;
+  let openid = resolveOpenid(context, event);
+  if (!openid) {
+    const uid = (event && event.uid) || (context && context.uid) || '';
+    if (uid) openid = uid;
+  }
+
+  const { visitId = '' } = event || {};
+  if (!visitId) return { code: 400, data: null, msg: '缺少访客记录ID' };
+
+  try {
+    const visitRes = await visitsCol.doc(visitId).get();
+    const visit = visitRes.data && visitRes.data[0];
+    if (!visit) return { code: 404, data: null, msg: '记录不存在' };
+
+    if (visit.status !== 'pending') {
+      return { code: 400, data: null, msg: '仅待确认状态的记录可删除' };
+    }
+
+    await visitsCol.doc(visitId).remove();
+
+    try {
+      await db.collection('notifications').where({ relatedId: visitId }).remove();
+    } catch (e) {
+      console.error('[visit:deleteVisit] remove notifications error:', e);
+    }
+
+    return { code: 0, msg: '已撤销', data: { id: visitId } };
+  } catch (err) {
+    console.error('[visit:deleteVisit] error:', err);
+    return { code: 500, data: null, msg: `删除失败：${err.message || err}` };
+  }
+}
+
+// ====== Action: cleanData (临时清理) ======
+async function cleanDataAction(event, context) {
+  const db = uniCloud.database();
+  const dbCmd = db.command;
+  try {
+    const r = await db.collection('notifications').where({ _id: dbCmd.exists(true) }).remove();
+    return { code: 0, msg: '清理完成', data: r };
+  } catch (e) {
+    return { code: 500, msg: `清理失败：${e.message || e}`, data: null };
+  }
+}
+
 // ====== Action router ======
 const handlers = {
   getVisits: getVisitsAction,
   createVisit: createVisitAction,
   updateVisitStatus: updateVisitStatusAction,
+  deleteVisit: deleteVisitAction,
   expireCheck: expireCheckAction,
+  getVisitQRCode: getVisitQRCodeAction,
+  cleanData: cleanDataAction,
 };
 
 exports.main = async (event, context) => {
+  if (event.action === 'cleanData') {
+	return cleanDataAction(event, context);
+  }
   // Timer trigger
   if (event && event.TriggerName === 'expireCheck') {
     console.log('[visit] timer triggered: expireCheck');

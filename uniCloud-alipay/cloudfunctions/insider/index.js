@@ -112,7 +112,7 @@ async function createInsiderAction(event, context) {
   try {
     const doc = {
       _openid: '',
-      nickname: name,
+      nickname: '',
       name,
       avatar: '',
       phone,
@@ -202,11 +202,18 @@ async function deleteInsiderAction(event, context) {
     const targetRes = await usersCol.doc(id).get();
     const target = targetRes.data && targetRes.data[0];
     if (!target) return { code: 404, data: null, msg: '记录不存在' };
-    if (target._openid) {
-      await usersCol.doc(id).update({ role: 'visitor', department: '', departmentCode: '', updateTime: fmtDateTime() });
-      return { code: 0, msg: '已移除员工身份', data: { id } };
-    }
+    if (target.role === 'admin') return { code: 400, data: null, msg: '不能删除管理员账户' };
+    const targetOpenid = target._openid || '';
     await usersCol.doc(id).remove();
+    if (targetOpenid) {
+      try {
+        const appsCol = db.collection('insiderApplications');
+        const dbCmd = db.command;
+        await appsCol.where({ _openid: targetOpenid, status: 'approved' }).update({ status: 'deleted', handleTime: fmtDateTime() });
+      } catch (e) {
+        console.error('[insider:deleteInsider] update applications error:', e);
+      }
+    }
     return { code: 0, msg: '删除成功', data: { id } };
   } catch (err) {
     console.error('[insider:deleteInsider] error:', err);
@@ -255,8 +262,15 @@ async function applyInsiderAction(event, context) {
     createTime: fmtDateTime(),
     handleTime: '',
   };
-  const addRes = await appsCol.add(doc);
-  doc._id = (addRes && addRes.id) || '';
+  const delRes = await appsCol.where({ _openid: openid, status: 'deleted' }).orderBy('createTime', 'desc').limit(1).get();
+  if (delRes.data && delRes.data.length > 0) {
+    const oldDoc = delRes.data[0];
+    await appsCol.doc(oldDoc._id).update(doc);
+    doc._id = oldDoc._id;
+  } else {
+    const addRes = await appsCol.add(doc);
+    doc._id = (addRes && addRes.id) || '';
+  }
 
   // Notify all admins
   try {
@@ -274,6 +288,7 @@ async function applyInsiderAction(event, context) {
         await sendSubscribeMsg(adminOpenid, tplData, 'pages/insider-approve/index', HOST_TMPL_ID, config);
         await db.collection('notifications').add({
           _openid: adminOpenid,
+          targetRole: 'admin',
           type: 'new_visit',
           title: '新的员工申请',
           content: `${name} 申请成为内部员工，部门：${department}，请及时审核。`,
@@ -338,9 +353,9 @@ async function handleInsiderApplicationAction(event, context) {
 
   const body = event || {};
   const id = (body.id || '').trim();
-  const action = body.action === 'approve' ? 'approve' : body.action === 'reject' ? 'reject' : '';
+  const decision = body.decision === 'approve' ? 'approve' : body.decision === 'reject' ? 'reject' : '';
   if (!id) return { code: 400, data: null, msg: '缺少 id 参数' };
-  if (!action) return { code: 400, data: null, msg: 'action 参数必须为 approve 或 reject' };
+  if (!decision) return { code: 400, data: null, msg: 'decision 参数必须为 approve 或 reject' };
 
   const appRes = await appsCol.doc(id).get();
   const app = appRes.data && appRes.data[0];
@@ -351,6 +366,7 @@ async function handleInsiderApplicationAction(event, context) {
     try {
       await db.collection('notifications').add({
         _openid: app._openid,
+        targetRole: '',
         type,
         title,
         content,
@@ -363,7 +379,7 @@ async function handleInsiderApplicationAction(event, context) {
     }
   };
 
-  if (action === 'reject') {
+  if (decision === 'reject') {
     await appsCol.doc(id).update({ status: 'rejected', handleTime: fmtDateTime() });
     await notify('insider_rejected', '内部员工申请未通过', '很抱歉，您的内部员工申请未通过审核，如需申请可重新填写提交。');
     return { code: 0, msg: '已拒绝该申请', data: { id, status: 'rejected' } };
@@ -383,12 +399,11 @@ async function handleInsiderApplicationAction(event, context) {
       phone: app.phone,
       updateTime: fmtDateTime(),
     };
-    if (!u.nickname || u.nickname === '微信用户') uPatch.nickname = app.name;
     await db.collection('users').doc(u._id).update(uPatch);
   } else {
     await db.collection('users').add({
       _openid: app._openid,
-      nickname: app.name,
+      nickname: app.nickname || '',
       name: app.name,
       phone: app.phone,
       avatar: '',

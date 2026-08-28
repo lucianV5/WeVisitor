@@ -79,8 +79,7 @@ onMounted(async () => {
 onShow(() => {
   syncTabBarActive(instance, '/pages/appointment/index')
   if (!userStore.user) {
-    resetForm()
-    uni.showToast({ title: '请先登录', icon: 'none' })
+    uni.reLaunch({ url: '/pages/index/index' })
     return
   }
   prefillFromUser()
@@ -262,7 +261,7 @@ const handleTimeTap = () => {
 
       <view :class="styles.field">
         <view :class="styles.labelRow">
-          <text :class="styles.label">随行人数</text>
+          <text :class="styles.label">来访人数</text>
         </view>
         <view :class="styles.inputWrap">
           <input

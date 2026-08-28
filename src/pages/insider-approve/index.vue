@@ -42,7 +42,7 @@ const handleAction = async (item: any, action: 'approve' | 'reject') => {
       if (!res.confirm) return
       try {
         uni.showLoading({ title: '处理中...' })
-        await callFunction('handleInsiderApplication', { id: item._id, action })
+        await callFunction('handleInsiderApplication', { id: item._id, decision: action })
         uni.hideLoading()
         uni.showToast({ title: `已${actionText}`, icon: 'success' })
         loadList()

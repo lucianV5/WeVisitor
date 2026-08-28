@@ -1,0 +1,75 @@
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding: $spacing-lg;
+  box-sizing: border-box;
+}
+.card {
+  background: #fff;
+  border-radius: $radius-card;
+  padding: $spacing-xl $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 60rpx;
+}
+.title {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+.desc {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+}
+.qrImage {
+  width: 400rpx;
+  height: 400rpx;
+  margin-bottom: $spacing-lg;
+}
+.loading {
+  width: 400rpx;
+  height: 400rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-md;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-lg;
+}
+.errorTip {
+  font-size: $font-md;
+  color: #f53f3f;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+}
+.saveBtn {
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-md;
+  border-radius: $radius-button;
+  height: 88rpx;
+  line-height: 88rpx;
+  width: 100%;
+  margin-bottom: $spacing-sm;
+}
+.shareBtn {
+  background: $color-primary-bg;
+  color: $color-primary;
+  font-size: $font-md;
+  border-radius: $radius-button;
+  height: 88rpx;
+  line-height: 88rpx;
+  width: 100%;
+}
+.hint {
+  font-size: $font-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  text-align: center;
+  margin-top: $spacing-md;
+}

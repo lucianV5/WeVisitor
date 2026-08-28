@@ -36,6 +36,9 @@ const onNameInput = (e: any) => {
 const onPhoneInput = (e: any) => {
   phone.value = e.detail.value
 }
+const onNicknameInput = (e: any) => {
+  nickname.value = e.detail.value
+}
 
 watch(user, () => {
   avatarUrl.value = user.value?.avatar || ''
@@ -65,6 +68,7 @@ const handleSave = async () => {
       name: name.value.trim(),
       phone: phone.value.trim(),
     }
+    if (nickname.value) payload.nickname = nickname.value.trim()
     if (avatarUrl.value) payload.avatar = avatarUrl.value
     if (isInternal.value) payload.department = department.value
     const result = await userStore.updateUser(payload)
@@ -102,8 +106,10 @@ const handleSave = async () => {
         </view>
         <input
           :class="styles.input"
+          type="nickname"
+          placeholder="点击选择微信昵称"
           :value="nickname"
-          disabled
+          @input="onNicknameInput"
         />
       </view>
       <view :class="styles.formRow">

@@ -4,6 +4,62 @@
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
+.guestView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 60rpx 0;
+}
+.guestIcon {
+  font-size: 100rpx;
+  margin-bottom: 24rpx;
+}
+.guestTitle {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin-bottom: 16rpx;
+}
+.guestDesc {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  margin-bottom: 48rpx;
+}
+.guestFeatures {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  margin-bottom: 64rpx;
+}
+.guestFeatureItem {
+  display: flex;
+  align-items: center;
+  background: $color-bg-card;
+  border-radius: $radius-card;
+  padding: 28rpx 32rpx;
+}
+.guestFeatureIcon {
+  font-size: 40rpx;
+  margin-right: 24rpx;
+}
+.guestFeatureText {
+  font-size: $font-lg;
+  color: $color-text-primary;
+  font-weight: 500;
+}
+.guestLoginBtn {
+  width: 100%;
+  height: 96rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: #fff;
+  font-size: $font-lg;
+  font-weight: 600;
+  border: none;
+  line-height: 96rpx;
+  &::after { border: none; }
+}
 .tabsWrap {
   position: -webkit-sticky;
   position: sticky;

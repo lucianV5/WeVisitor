@@ -1,0 +1,35 @@
+.page {
+  height: 100vh;
+  background-color: #fff;
+}
+.content {
+  padding: 32rpx 40rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+.h1 {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12rpx;
+}
+.updateTime {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 32rpx;
+}
+.h2 {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  margin-top: 32rpx;
+  margin-bottom: 16rpx;
+}
+.p {
+  display: block;
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 8rpx;
+}

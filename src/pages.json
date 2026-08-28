@@ -22,7 +22,8 @@
     {
       "path": "pages/profile/index",
       "style": {
-        "navigationBarTitleText": "我的"
+        "navigationBarTitleText": "我的",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -67,7 +68,8 @@
     {
       "path": "pages/insider-apply/index",
       "style": {
-        "navigationBarTitleText": "申请成为内部员工"
+        "navigationBarTitleText": "申请成为内部员工",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -80,7 +82,20 @@
     {
       "path": "pages/messages/index",
       "style": {
-        "navigationBarTitleText": "我的消息"
+        "navigationBarTitleText": "我的消息",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/qrcode/index",
+      "style": {
+        "navigationBarTitleText": "访客预约二维码"
+      }
+    },
+    {
+      "path": "pages/agreement/index",
+      "style": {
+        "navigationBarTitleText": "用户服务协议"
       }
     }
   ],

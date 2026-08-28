@@ -45,13 +45,6 @@ onShow(() => {
 onPullDownRefresh(() => loadList())
 onReachBottom(() => loadMore())
 
-const handleAdd = () => {
-  if (!isAdmin.value) {
-    uni.showToast({ title: '仅管理员可添加人员', icon: 'none' })
-    return
-  }
-  uni.navigateTo({ url: '/pages/insider-edit/index' })
-}
 const handleEdit = (item: Insider, e?: Event) => {
   e?.stopPropagation && e.stopPropagation()
   if (!isAdmin.value) return
@@ -72,7 +65,7 @@ const handleDelete = (item: Insider, e: Event) => {
         uni.hideLoading()
         const idx = list.value.findIndex(i => i._id === item._id)
         if (idx >= 0) list.value.splice(idx, 1)
-        uni.showToast({ title: '已删除', icon: 'success' })
+        uni.showToast({ title: '删除成功', icon: 'success' })
       } catch (err) {
         console.error('[Insiders] delete error:', err)
         uni.hideLoading()
@@ -98,7 +91,6 @@ const handleDelete = (item: Insider, e: Event) => {
         />
         <text v-if="keyword" :class="styles.clearIcon" @tap="onClear">×</text>
       </view>
-      <view v-if="isAdmin" :class="styles.addBtn" @tap="handleAdd">添加人员</view>
     </view>
 
     <view :class="styles.listWrap">
@@ -124,7 +116,7 @@ const handleDelete = (item: Insider, e: Event) => {
           <text :class="styles.infoLabel">手 机 号：</text>
           <text :class="styles.infoValue">{{ item.phone || '—' }}</text>
         </view>
-        <view v-if="isAdmin" :class="styles.cardActions">
+        <view v-if="isAdmin" :class="styles.cardActions" @tap.stop>
           <view :class="styles.actionBtn" @tap="handleEdit(item, $event)">编辑</view>
           <view :class="styles.actionBtn" @tap="handleDelete(item, $event)">删除</view>
         </view>

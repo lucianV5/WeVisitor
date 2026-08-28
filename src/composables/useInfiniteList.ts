@@ -65,6 +65,7 @@ export function useInfiniteList<T>(fnName: string, baseParams: Record<string, an
   const reset = () => fetchList(true)
 
   const setParams = (params: Record<string, any>) => {
+    Object.keys(baseParams).forEach(k => delete baseParams[k])
     Object.assign(baseParams, params)
   }
 

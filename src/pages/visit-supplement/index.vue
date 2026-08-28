@@ -55,7 +55,7 @@ onMounted(async () => {
   const user = userStore.user
   if (user) {
     form.hostId = user._id || ''
-    form.hostName = user.nickname
+    form.hostName = user.name || user.nickname
     const idx = insiders.value.findIndex(i => i._id === user._id)
     if (idx >= 0) hostIndex.value = idx
   }
@@ -203,7 +203,7 @@ const handleTimeChange = (e: any) => {
 
       <view :class="styles.field">
         <view :class="styles.labelRow">
-          <text :class="styles.label">随行人数</text>
+          <text :class="styles.label">来访人数</text>
         </view>
         <view :class="styles.inputWrap">
           <input

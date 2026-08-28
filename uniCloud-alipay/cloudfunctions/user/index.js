@@ -166,7 +166,6 @@ async function loginAction(event, context) {
         const preUser = matched.data[0];
         const patch2 = {
           _openid: openid,
-          nickname: nickName || realName,
           avatar: avatarUrl || preUser.avatar || '',
           updateTime: fmtDateTime(),
         };
@@ -187,13 +186,14 @@ async function loginAction(event, context) {
       }
     }
 
+    const selectedRole = event.selectedRole || '';
     const newUser = {
       _openid: openid,
       nickname: defaultNick,
       avatar: defaultAvatar,
       name: realName,
       phone: realPhone,
-      role: 'visitor',
+      role: selectedRole === 'insider' ? '' : 'visitor',
       department: '',
       createTime: fmtDateTime(),
       updateTime: fmtDateTime(),

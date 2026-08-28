@@ -118,11 +118,55 @@
   &::after {
     border: none;
   }
+  &:disabled {
+    opacity: 0.5;
+  }
 }
-.agreement {
-  display: block;
-  text-align: center;
+.agreementRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   margin-top: $spacing-md;
+  padding: 0 $spacing-sm;
+  flex-wrap: wrap;
+}
+.checkbox {
+  flex-shrink: 0;
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #ccc;
+  border-radius: 6rpx;
+  margin-right: 8rpx;
+  margin-top: 4rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkboxActive {
+  background: $color-primary;
+  border-color: $color-primary;
+}
+.checkIcon {
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+.agreementText {
   font-size: $font-sm;
   color: $color-text-secondary;
+  line-height: 1.6;
+}
+.agreementLink {
+  font-size: $font-sm;
+  color: $color-primary;
+  line-height: 1.6;
+}
+.guestLink {
+  text-align: center;
+  margin-top: $spacing-lg;
+}
+.guestLinkText {
+  font-size: $font-md;
+  color: $color-text-secondary;
+  text-decoration: underline;
 }

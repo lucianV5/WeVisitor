@@ -24,6 +24,13 @@ const userStore = useUserStore()
 const activeTab = ref<VisitStatus | 'all'>('all')
 const initialStatusSet = ref(false)
 
+const isGuestMode = ref(false)
+
+const goToLogin = () => {
+  uni.removeStorageSync('wevisitor_guest_mode')
+  uni.reLaunch({ url: '/pages/index/index' })
+}
+
 onLoad((q: any) => {
   const status = (q?.status || '') as string
   if (status && tabs.some(t => t.key === status)) {
@@ -40,7 +47,7 @@ const doFetch = async () => {
     uni.stopPullDownRefresh()
     return
   }
-  const r = userStore.user?.role
+  const r = userStore.currentRole
   const params: Record<string, any> = {
     role: r === 'admin' ? 'admin' : r === 'insider' ? 'insider' : 'visitor',
     userId: userStore.user?._id || '',
@@ -70,7 +77,7 @@ const stopTick = () => {
   }
 }
 
-onShow(() => {
+onShow(async () => {
   syncTabBarActive(instance, '/pages/visits/index')
   try {
     const filter = uni.getStorageSync('wevisitor_visits_filter')
@@ -79,19 +86,28 @@ onShow(() => {
       if (tabs.some(t => t.key === filter)) activeTab.value = filter as VisitStatus | 'all'
     }
   } catch (_) {}
-  if (userStore.user) {
-    now.value = Date.now()
-    doFetch()
-    startTick()
-  } else {
-    list.value = []
-    uni.showToast({ title: '请先登录', icon: 'none' })
+  if (!userStore.user) {
+    const isGuest = uni.getStorageSync('wevisitor_guest_mode')
+    if (!isGuest) {
+      uni.reLaunch({ url: '/pages/index/index' })
+      return
+    }
+    isGuestMode.value = true
+    return
   }
+  isGuestMode.value = false
+  uni.removeStorageSync('wevisitor_guest_mode')
+  now.value = Date.now()
+  doFetch()
+  startTick()
 })
 
 onHide(() => stopTick())
 
-onPullDownRefresh(() => doFetch())
+onPullDownRefresh(async () => {
+  await doFetch()
+  uni.stopPullDownRefresh()
+})
 onReachBottom(() => loadMore())
 
 const openDetail = async (visit: Visit) => {
@@ -105,12 +121,22 @@ const handleEdit = (visit: Visit) => {
 const handleDelete = (visit: Visit) => {
   uni.showModal({
     title: '提示',
-    content: '确定要删除该预约记录吗？',
-    success: (res: any) => {
+    content: '确定要撤销该预约吗？撤销后接待人将不再收到此预约通知。',
+    confirmText: '撤销',
+    cancelText: '取消',
+    success: async (res: any) => {
       if (!res.confirm) return
-      const idx = list.value.findIndex(v => v._id === visit._id)
-      if (idx >= 0) list.value.splice(idx, 1)
-      uni.showToast({ title: '已删除', icon: 'success' })
+      try {
+        uni.showLoading({ title: '处理中...' })
+        await callFunction('deleteVisit', { visitId: visit._id })
+        uni.hideLoading()
+        const idx = list.value.findIndex(v => v._id === visit._id)
+        if (idx >= 0) list.value.splice(idx, 1)
+        uni.showToast({ title: '已撤销', icon: 'success' })
+      } catch (err) {
+        uni.hideLoading()
+        uni.showToast({ title: err instanceof Error ? err.message : '操作失败', icon: 'none' })
+      }
     },
   })
 }
@@ -212,6 +238,34 @@ const handleExport = () => {
 
 <template>
   <view :class="styles.page">
+    <!-- Guest mode -->
+    <view v-if="isGuestMode" :class="styles.guestView">
+      <text :class="styles.guestIcon">📋</text>
+      <text :class="styles.guestTitle">访客预约系统</text>
+      <text :class="styles.guestDesc">登录后可使用以下功能：</text>
+      <view :class="styles.guestFeatures">
+        <view :class="styles.guestFeatureItem">
+          <text :class="styles.guestFeatureIcon">📝</text>
+          <text :class="styles.guestFeatureText"> 在线预约访客</text>
+        </view>
+        <view :class="styles.guestFeatureItem">
+          <text :class="styles.guestFeatureIcon">✅</text>
+          <text :class="styles.guestFeatureText">接待人审批确认</text>
+        </view>
+        <view :class="styles.guestFeatureItem">
+          <text :class="styles.guestFeatureIcon">📋</text>
+          <text :class="styles.guestFeatureText">查看预约记录</text>
+        </view>
+        <view :class="styles.guestFeatureItem">
+          <text :class="styles.guestFeatureIcon">🔔</text>
+          <text :class="styles.guestFeatureText">消息通知提醒</text>
+        </view>
+      </view>
+      <button :class="styles.guestLoginBtn" @tap="goToLogin">去登录</button>
+    </view>
+
+    <!-- Normal mode -->
+    <template v-else>
     <view :class="styles.tabsWrap">
       <view :class="styles.tabs">
         <view
@@ -248,5 +302,6 @@ const handleExport = () => {
       <view v-if="loadingMore" :class="styles.loadingMore">加载中...</view>
       <view v-else-if="!hasMore && list.length > 0" :class="styles.noMore">没有更多了</view>
     </view>
+    </template>
   </view>
 </template>

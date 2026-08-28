@@ -15,8 +15,12 @@ async function getMyNotificationsAction(event, context) {
   }
   if (!openid) return { code: 401, data: null, msg: '未获取到用户身份' };
 
+  const role = (event && event.role) || '';
   const col = db.collection('notifications');
-  const res = await col.where({ _openid: openid }).orderBy('createTime', 'desc').limit(100).get();
+  const where = role
+    ? { _openid: openid, targetRole: db.command.in([role, '']) }
+    : { _openid: openid };
+  const res = await col.where(where).orderBy('createTime', 'desc').limit(100).get();
   const items = res.data || [];
   const unread = items.filter(n => !n.read).length;
   return { code: 0, msg: 'ok', data: { list: items, unread } };
@@ -32,8 +36,12 @@ async function markNotificationsReadAction(event, context) {
   }
   if (!openid) return { code: 401, data: null, msg: '未获取到用户身份' };
 
+  const role = (event && event.role) || '';
   const col = db.collection('notifications');
-  const res = await col.where({ _openid: openid, read: false }).limit(100).get();
+  const where = role
+    ? { _openid: openid, read: false, targetRole: db.command.in([role, '']) }
+    : { _openid: openid, read: false };
+  const res = await col.where(where).limit(100).get();
   const items = res.data || [];
   for (const n of items) {
     try { await col.doc(n._id).update({ read: true }); } catch (e) {}

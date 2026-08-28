@@ -88,25 +88,87 @@ const stopTick = () => {
 
 onShow(async () => {
   syncTabBarActive(instance, '/pages/workbench/index')
-  if (userStore.user) {
-    const changed = await userStore.refreshUser()
-    if (changed) syncTabBarActive(instance, '/pages/workbench/index')
-    now.value = Date.now()
-    if (isInsider.value) {
-      fetchList()
-      startTick()
-    }
-    if (isAdmin.value) {
-      fetchApplications()
+  if (!userStore.user) {
+    uni.reLaunch({ url: '/pages/index/index' })
+    return
+  }
+  if (!isInsider.value && !isAdmin.value) {
+    uni.switchTab({ url: '/pages/visits/index' })
+    return
+  }
+  now.value = Date.now()
+  if (isInsider.value) {
+    fetchList()
+    startTick()
+  }
+  if (isAdmin.value) {
+    fetchApplications()
+  }
+  // #ifdef MP-WEIXIN
+  if (isInsider.value || isAdmin.value) {
+    const notified = uni.getStorageSync('wevisitor_notify_authorized')
+    if (!notified) {
+      uni.showModal({
+        title: '开启消息通知',
+        content: '开启后可在访客提交预约时收到微信提醒。请在弹窗中勾选"总是保持以上选择"并点击"允许"。',
+        confirmText: '去开启',
+        cancelText: '稍后',
+        success: (res) => {
+          if (!res.confirm) return
+          const hostId = getHostTmplId()
+          const applicantId = getApplicantTmplId()
+          if (!hostId && !applicantId) return
+          const tmplIds = [hostId, applicantId].filter(Boolean) as string[]
+          uni.requestSubscribeMessage({
+            tmplIds,
+            success: (res: any) => {
+              const accepted = tmplIds.some(id => res[id] === 'accept')
+              if (!accepted) {
+                uni.showModal({
+                  title: '通知未开启',
+                  content: '您已拒绝通知授权。请前往微信设置 → 隐私 → 授权管理中重新开启。',
+                  showCancel: false,
+                  confirmText: '知道了',
+                })
+                return
+              }
+              uni.setStorageSync('wevisitor_notify_authorized', true)
+              let count = 1
+              let failed = 0
+              const loop = (remaining: number) => {
+                if (remaining <= 0) return
+                uni.requestSubscribeMessage({
+                  tmplIds,
+                  success: () => { count++; failed = 0; setTimeout(() => loop(remaining - 1), 50) },
+                  fail: () => { failed++; if (failed >= 2) return; setTimeout(() => loop(remaining - 1), 50) },
+                })
+              }
+              loop(48)
+            },
+            fail: (err: any) => {
+              const errMsg = String(err?.errMsg || err?.message || err || '')
+              let tip = '授权失败，请稍后重试'
+              if (/always|20004/.test(errMsg)) {
+                tip = '您之前选择了"总是拒绝"，请前往微信设置 → 隐私 → 授权管理中重置'
+              } else if (/43101/.test(errMsg)) {
+                tip = '您已拒绝通知授权，请前往微信设置中重新开启'
+              }
+              uni.showModal({ title: '开启通知失败', content: tip, showCancel: false })
+            },
+          })
+        },
+      })
     }
   }
+  // #endif
 })
 
 onHide(() => stopTick())
 
-onPullDownRefresh(() => {
-  if (isInsider.value) fetchList()
-  if (isAdmin.value) fetchApplications()
+onPullDownRefresh(async () => {
+  if (isInsider.value) await fetchList()
+  if (isAdmin.value) await fetchApplications()
+  uni.stopPullDownRefresh()
 })
 onReachBottom(() => {
   if (isInsider.value) loadMoreVisits()
@@ -159,80 +221,27 @@ const goSupplement = () => uni.navigateTo({ url: '/pages/visit-supplement/index'
 const goInsiders = () => uni.switchTab({ url: '/pages/insiders/index' })
 const goRecords = () => uni.switchTab({ url: '/pages/visits/index' })
 
-const enableNotifications = () => {
-  // #ifdef MP-WEIXIN
-  const hostId = getHostTmplId()
-  const applicantId = getApplicantTmplId()
-  uni.showModal({
-    title: '开启消息提醒',
-    content: '请在弹窗中勾选"总是保持以上选择"并点击"允许"，系统将自动积累通知额度。',
-    confirmText: '知道了',
-    showCancel: false,
-    success: () => {
-      uni.requestSubscribeMessage({
-        tmplIds: [hostId, applicantId],
-        success: (res: any) => {
-          const hostOk = res[hostId] === 'accept'
-          const applicantOk = res[applicantId] === 'accept'
-          if (!hostOk && !applicantOk) {
-            uni.showToast({ title: '未开启通知', icon: 'none' })
-            return
-          }
-          uni.showLoading({ title: '积累额度中...' })
-          let count = 1
-          let failed = 0
-          const loop = (remaining: number) => {
-            if (remaining <= 0) {
-              uni.hideLoading()
-              uni.showModal({
-                title: '通知额度已积累',
-                content: `本次共积累 ${count} 次通知额度。\n建议每天打开小程序点一次"开启通知"保持额度充足。`,
-                showCancel: false,
-                confirmText: '好的',
-              })
-              return
-            }
-            uni.requestSubscribeMessage({
-              tmplIds: [hostId, applicantId],
-              success: () => {
-                count++
-                failed = 0
-                setTimeout(() => loop(remaining - 1), 50)
-              },
-              fail: () => {
-                failed++
-                if (failed >= 2) {
-                  uni.hideLoading()
-                  uni.showModal({
-                    title: '通知额度已积累',
-                    content: `本次共积累 ${count} 次通知额度。\n建议每天打开小程序点一次"开启通知"保持额度充足。`,
-                    showCancel: false,
-                    confirmText: '好的',
-                  })
-                } else {
-                  setTimeout(() => loop(remaining - 1), 50)
-                }
-              },
-            })
-          }
-          loop(49)
-        },
-        fail: (err: any) => {
-          const errMsg = String(err?.errMsg || err?.message || err || '')
-          let tip = '授权失败'
-          if (/always/.test(errMsg) || /20004/.test(errMsg)) {
-            tip = '您之前选择了"总是拒绝"，请前往微信设置 → 隐私 → 授权管理中重置'
-          } else if (/invalid|template|tmpl/i.test(errMsg)) {
-            tip = '模板ID无效，请检查模板是否已审核通过'
-          } else if (errMsg) {
-            tip = errMsg.slice(0, 60)
-          }
-          uni.showModal({ title: '开启通知失败', content: tip, showCancel: false })
-        },
-      })
-    },
-  })
-  // #endif
+const approvalGrid = [
+  { key: 'supplement', icon: '➕', label: '补录访客' },
+  { key: 'all', icon: '🗂', label: '全部记录' },
+  { key: 'pending', icon: '⏱', label: '待确认' },
+  { key: 'approved', icon: '🔍', label: '已确认待到访' },
+  { key: 'completed', icon: '✓', label: '已到访' },
+  { key: 'rejected', icon: '✕', label: '已拒绝' },
+]
+
+const handleGridTap = (key: string) => {
+  if (key === 'supplement') {
+    uni.navigateTo({ url: '/pages/visit-supplement/index' })
+    return
+  }
+  if (key === 'all' || key === 'pending' || key === 'approved' || key === 'completed' || key === 'rejected') {
+    try {
+      uni.setStorageSync('wevisitor_visits_filter', key)
+    } catch (_) {}
+    uni.switchTab({ url: '/pages/visits/index' })
+    return
+  }
 }
 
 const appList = ref<any[]>([])
@@ -289,7 +298,7 @@ const handleAppAction = (item: any, action: 'approve' | 'reject') => {
     success: async (res: any) => {
       if (!res.confirm) return
       try {
-        await callFunction('handleInsiderApplication', { id: item._id, action })
+        await callFunction('handleInsiderApplication', { id: item._id, decision: action })
         uni.showToast({ title: `已${actionText}`, icon: 'success' })
         fetchApplications()
       } catch (err: any) {
@@ -312,6 +321,7 @@ const showRoleSwitcher = () => {
       const selected = roles[res.tapIndex]
       if (selected !== activeRole.value) {
         userStore.switchRole(selected)
+        syncTabBarActive(instance, '/pages/workbench/index')
         uni.showToast({ title: '已切换角色', icon: 'success' })
         setTimeout(() => {
           if (isInsider.value) {
@@ -353,10 +363,6 @@ const showRoleSwitcher = () => {
     <view :class="styles.card">
       <text :class="styles.cardTitle">快捷操作</text>
       <view :class="styles.quickGrid">
-        <view :class="styles.quickItem" @tap="enableNotifications">
-          <view :class="styles.quickIcon">🔔</view>
-          <text :class="styles.quickLabel">开启通知</text>
-        </view>
         <view v-if="isInsider" :class="styles.quickItem" @tap="goSupplement">
           <view :class="styles.quickIcon">📝</view>
           <text :class="styles.quickLabel">访客补录</text>
@@ -368,6 +374,22 @@ const showRoleSwitcher = () => {
         <view :class="styles.quickItem" @tap="goRecords">
           <view :class="styles.quickIcon">📊</view>
           <text :class="styles.quickLabel">审批记录</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 访客记录管理 -->
+    <view v-if="isInsider" :class="styles.card">
+      <text :class="styles.cardTitle">访客记录管理</text>
+      <view :class="styles.approvalGrid">
+        <view
+          v-for="item in approvalGrid"
+          :key="item.key"
+          :class="styles.approvalItem"
+          @tap="handleGridTap(item.key)"
+        >
+          <view :class="styles.approvalIcon">{{ item.icon }}</view>
+          <text :class="styles.approvalLabel">{{ item.label }}</text>
         </view>
       </view>
     </view>
@@ -412,7 +434,7 @@ const showRoleSwitcher = () => {
             <text :class="styles.gridValue">{{ visit.visitDate }}</text>
           </view>
           <view :class="styles.gridItem">
-            <text :class="styles.gridLabel">来访地点</text>
+            <text :class="styles.gridLabel">来访部门</text>
             <text :class="styles.gridValue">{{ visit.hostDepartment || '-' }}</text>
           </view>
           <view :class="styles.gridItem">

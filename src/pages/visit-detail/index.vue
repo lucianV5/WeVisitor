@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import type { Visit, VisitStatus } from '@/types'
 import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
@@ -26,15 +26,16 @@ const fallBackVisit: Visit = {
 
 const visit = ref<Visit>(fallBackVisit)
 
-onLoad(async (q: any) => {
-  const id: string = q?.id || ''
-  if (!id) return
+const visitId = ref('')
+
+const loadVisit = async () => {
+  if (!visitId.value) return
   try {
     loading.value = true
     const role = userStore.currentRole
     const uid = userStore.user?._id || ''
     const list = await callFunction<Visit[]>('getVisits', { role, userId: uid })
-    const found = (list || []).find(v => v._id === id)
+    const found = (list || []).find(v => v._id === visitId.value)
     if (found) {
       visit.value = found
     }
@@ -43,6 +44,15 @@ onLoad(async (q: any) => {
   } finally {
     loading.value = false
   }
+}
+
+onLoad((q: any) => {
+  visitId.value = q?.id || ''
+  loadVisit()
+})
+
+onShow(() => {
+  if (visitId.value) loadVisit()
 })
 
 const isHost = computed(() => userStore.currentRole !== 'visitor')

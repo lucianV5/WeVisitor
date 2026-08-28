@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide, onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
 import { validatePhone, DEPARTMENT_OPTIONS } from '@/utils'
@@ -10,8 +10,8 @@ const DEPARTMENTS = DEPARTMENT_OPTIONS.map(o => o.name)
 const userStore = useUserStore()
 
 const form = reactive({
-  name: '',
-  phone: '',
+  name: userStore.user?.name || '',
+  phone: userStore.user?.phone || '',
   department: '',
 })
 const errors = reactive<Record<string, string>>({})
@@ -42,6 +42,7 @@ const loadStatus = async () => {
     status.value = app?.status || ''
     if (status.value === 'approved') {
       uni.showToast({ title: '您已是内部员工', icon: 'success' })
+      await userStore.refreshUser()
       setTimeout(() => uni.switchTab({ url: '/pages/workbench/index' }), 800)
       return
     }
@@ -59,6 +60,31 @@ onLoad(() => {
   loadStatus()
 })
 
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+onShow(() => {
+  if (status.value === 'pending') {
+    loadStatus()
+    pollTimer = setInterval(async () => {
+      if (status.value === 'pending') {
+        await loadStatus()
+      }
+    }, 10000)
+  }
+})
+
+onHide(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+})
+
+onPullDownRefresh(async () => {
+  await loadStatus()
+  uni.stopPullDownRefresh()
+})
+
 const validate = () => {
   const newErrors: Record<string, string> = {}
   if (!form.name.trim()) newErrors.name = '请输入姓名'
@@ -73,18 +99,6 @@ const validate = () => {
 const handleSubmit = async () => {
   if (!validate()) {
     uni.showToast({ title: '请完善申请信息', icon: 'none' })
-    return
-  }
-  if (!userStore.user?.name?.trim() || !userStore.user?.phone?.trim()) {
-    uni.showModal({
-      title: '提示',
-      content: '个人资料还未填写，请先完善真实姓名和手机号后再进行操作。',
-      confirmText: '去填写',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) uni.navigateTo({ url: '/pages/profile-edit/index' })
-      },
-    })
     return
   }
   submitting.value = true
@@ -107,10 +121,6 @@ const handleSubmit = async () => {
   }
 }
 
-const goVisitorHome = () => {
-  uni.switchTab({ url: '/pages/visits/index' })
-}
-
 const goLogin = () => {
   uni.reLaunch({ url: '/pages/index/index' })
 }
@@ -122,8 +132,7 @@ const goLogin = () => {
       <text :class="styles.statusIcon">⏳</text>
       <text :class="styles.statusTitle">申请审核中</text>
       <text :class="styles.statusDesc">您的内部员工申请已提交，请等待管理员确认。审核通过后重新进入即可使用内部员工功能。</text>
-      <view :class="styles.statusBtn" @tap="goVisitorHome">先以访客身份进入</view>
-      <view :class="styles.linkBtn" @tap="goLogin">返回登录页</view>
+      <view :class="styles.statusBtn" @tap="goLogin">返回登录页</view>
     </view>
 
     <view v-else-if="!loading" :class="styles.formCard">
@@ -192,7 +201,6 @@ const goLogin = () => {
       >
         提交申请
       </button>
-      <view :class="styles.linkBtn" @tap="goVisitorHome">先以访客身份进入</view>
       <view :class="styles.linkBtn" @tap="goLogin">返回登录页</view>
     </view>
   </view>

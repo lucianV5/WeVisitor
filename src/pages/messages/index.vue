@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
 import EmptyState from '@/components/EmptyState/index.vue'
 import styles from './index.module.scss'
+
+const userStore = useUserStore()
 
 const list = ref<any[]>([])
 const loading = ref(true)
@@ -14,12 +17,12 @@ const iconOf = (type: string) => {
   return '🔔'
 }
 
-onLoad(async () => {
+const loadList = async () => {
   try {
-    const res = await callFunction<any>('getMyNotifications', {})
-    list.value = res?.list || []
+    const res = await callFunction<any>('getMyNotifications', { role: userStore.currentRole || '' })
+    list.value = res?.list || res?.data || []
     if ((res?.unread || 0) > 0) {
-      await callFunction('markNotificationsRead', {})
+      await callFunction('markNotificationsRead', { role: userStore.currentRole || '' })
     }
   } catch (err) {
     console.error('[Messages] load error:', err)
@@ -27,6 +30,19 @@ onLoad(async () => {
   } finally {
     loading.value = false
   }
+}
+
+onLoad(() => {
+  loadList()
+})
+
+onShow(() => {
+  loadList()
+})
+
+onPullDownRefresh(async () => {
+  await loadList()
+  uni.stopPullDownRefresh()
 })
 </script>
 

@@ -93,17 +93,17 @@ const rejectReason = computed(() => props.visit.rejectReason || '')
     <view :class="styles.actions">
       <!-- Visitor view actions -->
       <template v-if="role === 'visitor'">
-        <view :class="styles.actionBtn" @tap="onEdit">详情/修改</view>
-        <view :class="styles.actionBtn" @tap="onDelete">删除</view>
+        <view :class="styles.actionBtn" @tap.stop="onEdit">详情/修改</view>
+        <view v-if="visit.status === 'pending'" :class="styles.actionBtn" @tap.stop="onDelete">撤销</view>
       </template>
       <!-- Insider view actions -->
       <template v-else>
         <template v-if="visit.status === 'pending'">
-          <view :class="[styles.actionBtn, styles.actionBtnPrimary]" @tap="onApprove">✓ 确认</view>
-          <view :class="styles.actionBtn" @tap="onReject">× 拒绝</view>
+          <view :class="[styles.actionBtn, styles.actionBtnPrimary]" @tap.stop="onApprove">✓ 确认</view>
+          <view :class="styles.actionBtn" @tap.stop="onReject">× 拒绝</view>
         </template>
         <template v-else-if="visit.status === 'approved'">
-          <view :class="[styles.actionBtn, styles.actionBtnMuted]" @tap="onSignIn">已来访</view>
+          <view :class="[styles.actionBtn, styles.actionBtnMuted]" @tap.stop="onSignIn">已来访</view>
         </template>
         <template v-else-if="visit.status === 'completed'">
           <view :class="[styles.actionBtn, styles.actionBtnMuted]">已到访</view>

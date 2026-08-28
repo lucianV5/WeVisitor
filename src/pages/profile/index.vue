@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { getCurrentInstance } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
 import { syncTabBarActive } from '@/utils'
@@ -9,13 +9,29 @@ import styles from './index.module.scss'
 const instance = getCurrentInstance()
 const userStore = useUserStore()
 
-onShow(async () => {
+onShow(() => {
   syncTabBarActive(instance, '/pages/profile/index')
-  if (userStore.user) {
-    const changed = await userStore.refreshUser()
-    if (changed) syncTabBarActive(instance, '/pages/profile/index')
-    fetchUnread()
+  if (!userStore.user) {
+    uni.reLaunch({ url: '/pages/index/index' })
+    return
   }
+  fetchUnread()
+})
+
+onPullDownRefresh(async () => {
+  if (!userStore.user) {
+    uni.reLaunch({ url: '/pages/index/index' })
+    uni.stopPullDownRefresh()
+    return
+  }
+  await userStore.refreshUser()
+  if (!userStore.user) {
+    uni.reLaunch({ url: '/pages/index/index' })
+    uni.stopPullDownRefresh()
+    return
+  }
+  fetchUnread()
+  uni.stopPullDownRefresh()
 })
 
 const activeRole = computed(() => userStore.currentRole)
@@ -26,11 +42,11 @@ const isInsider = computed(() => activeRole.value === 'insider')
 const visitorMenus = [
   { key: 'messages', icon: '🔔', label: '我的消息' },
   { key: 'edit', icon: '👤', label: '我的资料' },
-  { key: 'applyInsider', icon: '🪪', label: '申请成为内部员工' },
 ]
 
 const insiderMenus = computed(() => {
   const list = [
+    { key: 'qrcode', icon: '📱', label: '访客预约二维码' },
     { key: 'messages', icon: '🔔', label: '我的消息' },
     { key: 'edit', icon: '👤', label: '我的资料' },
   ]
@@ -56,19 +72,10 @@ const currentMenus = computed(() => {
 const unread = ref(0)
 const fetchUnread = async () => {
   try {
-    const res = await callFunction<any>('getMyNotifications', {})
+    const res = await callFunction<any>('getMyNotifications', { role: userStore.currentRole || '' })
     unread.value = res?.unread || 0
   } catch (_) {}
 }
-
-const approvalGrid = [
-  { key: 'supplement', icon: '➕', label: '补录访客' },
-  { key: 'all', icon: '🗂', label: '全部记录' },
-  { key: 'pending', icon: '⏱', label: '待确认' },
-  { key: 'approved', icon: '🔍', label: '已确认待到访' },
-  { key: 'completed', icon: '✓', label: '已到访' },
-  { key: 'rejected', icon: '✕', label: '已拒绝' },
-]
 
 const handleLogin = async () => {
   uni.showLoading({ title: '登录中...' })
@@ -116,6 +123,7 @@ const showRoleSwitcher = () => {
       const selected = roles[res.tapIndex]
       if (selected !== activeRole.value) {
         userStore.switchRole(selected)
+        syncTabBarActive(instance, '/pages/profile/index')
         uni.showToast({ title: '已切换角色', icon: 'success' })
         const targetUrl = selected === 'visitor' ? '/pages/visits/index' : '/pages/workbench/index'
         setTimeout(() => uni.switchTab({ url: targetUrl }), 500)
@@ -133,8 +141,8 @@ const handleMenu = (key: string) => {
     uni.navigateTo({ url: '/pages/profile-edit/index' })
     return
   }
-  if (key === 'applyInsider') {
-    uni.navigateTo({ url: '/pages/insider-apply/index' })
+  if (key === 'qrcode') {
+    uni.navigateTo({ url: '/pages/qrcode/index' })
     return
   }
   if (key === 'messages') {
@@ -151,23 +159,6 @@ const handleMenu = (key: string) => {
   }
 }
 
-const handleGridTap = (key: string) => {
-  if (!userStore.user) {
-    uni.showToast({ title: '请先登录', icon: 'none' })
-    return
-  }
-  if (key === 'supplement') {
-    uni.navigateTo({ url: '/pages/visit-supplement/index' })
-    return
-  }
-  if (key === 'all' || key === 'pending' || key === 'approved' || key === 'completed' || key === 'rejected') {
-    try {
-      uni.setStorageSync('wevisitor_visits_filter', key)
-    } catch (_) {}
-    uni.switchTab({ url: '/pages/visits/index' })
-    return
-  }
-}
 </script>
 
 <template>
@@ -208,21 +199,6 @@ const handleGridTap = (key: string) => {
     </view>
 
     <template v-if="userStore.user">
-      <view v-if="isAdmin" :class="styles.managementCard">
-        <text :class="styles.managementTitle">访客记录审批管理</text>
-        <view :class="styles.grid">
-          <view
-            v-for="item in approvalGrid"
-            :key="item.key"
-            :class="styles.gridItem"
-            @tap="handleGridTap(item.key)"
-          >
-            <view :class="styles.gridIcon">{{ item.icon }}</view>
-            <text :class="styles.gridLabel">{{ item.label }}</text>
-          </view>
-        </view>
-      </view>
-
       <view :class="styles.menuCard">
         <view
           v-for="(item, idx) in currentMenus"

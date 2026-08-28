@@ -26,6 +26,8 @@ const VALID_CALL_NAMES = [
   'getVisits',
   'createVisit',
   'updateVisitStatus',
+  'deleteVisit',
+  'getVisitQRCode',
   'getInsiders',
   'createInsider',
   'updateInsider',
@@ -60,6 +62,8 @@ const FUNCTION_MAP: Record<string, { name: string; action: string }> = {
   getVisits: { name: 'visit', action: 'getVisits' },
   createVisit: { name: 'visit', action: 'createVisit' },
   updateVisitStatus: { name: 'visit', action: 'updateVisitStatus' },
+  deleteVisit: { name: 'visit', action: 'deleteVisit' },
+  getVisitQRCode: { name: 'visit', action: 'getVisitQRCode' },
   getMyNotifications: { name: 'notify', action: 'getMyNotifications' },
   markNotificationsRead: { name: 'notify', action: 'markNotificationsRead' },
 }
