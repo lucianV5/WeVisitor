@@ -4,6 +4,7 @@ import { onShow, onHide, onLoad, onPullDownRefresh, onReachBottom } from '@dclou
 import type { Visit, VisitStatus } from '@/types'
 import { useUserStore } from '@/store/user'
 import { callFunction } from '@/services/cloud'
+import * as XLSX from 'xlsx'
 import { syncTabBarActive, parseVisitTime } from '@/utils'
 import { useInfiniteList } from '@/composables/useInfiniteList'
 import VisitCard from '@/components/VisitCard/index.vue'
@@ -189,49 +190,106 @@ const handleExport = () => {
     return
   }
   uni.showLoading({ title: '导出中...' })
+  const statusMap: Record<string, string> = {
+    pending: '待确认',
+    approved: '已确认待到访',
+    completed: '已到访',
+    rejected: '已拒绝',
+  }
   const rows = [
-    ['接待人', '访客姓名', '手机号', '来访时间', '来访事由', '申请人', '状态'],
+    ['接待人', '访客姓名', '手机号', '所在公司', '来访时间', '来访事由', '申请人', '状态'],
     ...list.value.map(v => [
       v.hostName || '',
       v.visitorName || '',
       v.visitorPhone || '',
+      v.company || '',
       v.visitDate || '',
       v.purpose || '',
       v.visitorName || '',
-      v.status || '',
+      statusMap[v.status] || v.status || '',
     ]),
   ]
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
-  const fileName = `访客记录_${Date.now()}.csv`
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  ws['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 14 }]
+  XLSX.utils.book_append_sheet(wb, ws, '访客记录')
+  const base64Data = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' })
+  const fileName = `访客记录_${Date.now()}.xlsx`
   try {
     const fs: any = (typeof uni.getFileSystemManager === 'function') ? uni.getFileSystemManager() : null
+    console.log('[export] fs available:', !!fs)
     if (fs) {
-      const userPath = (uni as any).env?.USER_DATA_PATH || ''
-      const filePath = `${userPath}/${fileName}`
-      fs.writeFile({
-        filePath,
-        data: '\uFEFF' + csv,
-        encoding: 'utf8',
-        success: () => {
-          uni.hideLoading()
-          uni.showModal({
-            title: '导出成功',
-            content: `文件已保存：${fileName}`,
-            showCancel: false,
-          })
-        },
-        fail: () => {
-          uni.hideLoading()
-          uni.showToast({ title: '导出失败', icon: 'none' })
-        },
-      })
+        const userPath = (uni as any).env?.USER_DATA_PATH || ''
+        const filePath = `${userPath}/${fileName}`
+        console.log('[export] filePath:', filePath)
+        fs.writeFile({
+          filePath,
+          data: base64Data,
+          encoding: 'base64',
+          success: () => {
+            console.log('[export] writeFile success')
+            uni.hideLoading()
+            uni.showActionSheet({
+              itemList: ['转发到微信', '预览文件'],
+              success: (res: any) => {
+                if (res.tapIndex === 0) {
+                  ;(uni as any).shareFileMessage({
+                    filePath,
+                    fileName,
+                    success: () => {
+                      console.log('[export] shareFileMessage success')
+                    },
+                    fail: (err: any) => {
+                      console.error('[export] shareFileMessage fail:', err)
+                      uni.showToast({ title: '分享失败，请尝试预览', icon: 'none' })
+                    },
+                  })
+                } else if (res.tapIndex === 1) {
+                  uni.openDocument({
+                    filePath,
+                    showMenu: true,
+                    success: () => {
+                      console.log('[export] openDocument success')
+                    },
+                    fail: (err: any) => {
+                      console.error('[export] openDocument fail:', err)
+                      uni.showToast({ title: '预览失败，请尝试转发', icon: 'none' })
+                    },
+                  })
+                }
+              },
+              fail: () => {
+                uni.showToast({ title: '已取消', icon: 'none' })
+              },
+            })
+          },
+          fail: (err: any) => {
+            console.error('[export] writeFile fail:', err)
+            uni.hideLoading()
+            uni.showModal({
+              title: '导出失败',
+              content: `写入文件失败：${JSON.stringify(err)}`,
+              showCancel: false,
+            })
+          },
+        })
     } else {
+      console.error('[export] FileSystemManager not available')
       uni.hideLoading()
-      uni.showToast({ title: `已导出 ${list.value.length} 条记录`, icon: 'success' })
+      uni.showModal({
+        title: '导出失败',
+        content: '当前环境不支持文件操作',
+        showCancel: false,
+      })
     }
   } catch (err) {
+    console.error('[export] catch error:', err)
     uni.hideLoading()
-    uni.showToast({ title: `已导出 ${list.value.length} 条记录`, icon: 'success' })
+    uni.showModal({
+      title: '导出失败',
+      content: String(err),
+      showCancel: false,
+    })
   }
 }
 </script>

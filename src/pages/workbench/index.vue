@@ -442,6 +442,10 @@ const showRoleSwitcher = () => {
             <text :class="styles.gridValue">{{ visit.purpose }}</text>
           </view>
           <view :class="styles.gridItem">
+            <text :class="styles.gridLabel">所在公司</text>
+            <text :class="styles.gridValue">{{ visit.company || '—' }}</text>
+          </view>
+          <view :class="styles.gridItem">
             <text :class="styles.gridLabel">申请人</text>
             <text :class="styles.gridValue">{{ visit.visitorName }}</text>
           </view>

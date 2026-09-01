@@ -232,9 +232,10 @@ async function createVisitAction(event, context) {
   const body = event || {};
   console.log('[visit:createVisit] event keys:', Object.keys(body).join(','), 'submitterRole:', body.submitterRole, 'hostId:', body.hostId, 'visitorName:', body.visitorName);
   const visitorName = (body.visitorName || '').trim();
-  const visitorPhone = (body.visitorPhone || '').trim();
-  const visitorCount = Number(body.visitorCount) || 1;
-  const hostId = (body.hostId || '').trim();
+ const visitorPhone = (body.visitorPhone || '').trim();
+ const visitorCount = Number(body.visitorCount) || 1;
+ const company = (body.company || '').trim();
+ const hostId = (body.hostId || '').trim();
   const hostName = (body.hostName || '').trim();
   const hostDepartment = (body.hostDepartment || '').trim();
   const visitDate = (body.visitDate || '').trim();
@@ -247,18 +248,20 @@ async function createVisitAction(event, context) {
   const submitterRole = (body.submitterRole || '').trim();
 
   if (!visitorName) return { code: 400, data: null, msg: '访客姓名必填' };
-  if (!visitorPhone) return { code: 400, data: null, msg: '访客手机号必填' };
-  if (!hostId || !hostName) return { code: 400, data: null, msg: '接待人必选' };
+ if (!visitorPhone) return { code: 400, data: null, msg: '访客手机号必填' };
+ if (!company) return { code: 400, data: null, msg: '所在公司必填' };
+ if (!hostId || !hostName) return { code: 400, data: null, msg: '接待人必选' };
   if (!visitDate) return { code: 400, data: null, msg: '来访日期必选' };
   if (!purpose) return { code: 400, data: null, msg: '来访事由必填' };
 
   try {
     const doc = {
       _openid: openid || '',
-      visitorName,
-      visitorPhone,
-      visitorCount,
-      hostId,
+   visitorName,
+   visitorPhone,
+   visitorCount,
+   company,
+   hostId,
       hostName,
       hostDepartment,
       visitDate,

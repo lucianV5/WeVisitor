@@ -38,25 +38,29 @@ const handleSave = () => {
   if (!qrSrc.value) return
   // #ifdef MP-WEIXIN
   uni.showLoading({ title: '保存中...' })
-  uni.downloadFile({
-    url: qrSrc.value,
-    success: (res: any) => {
-      if (res.tempFilePath) {
-        uni.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: () => {
-            uni.hideLoading()
-            uni.showToast({ title: '已保存到相册', icon: 'success' })
-          },
-          fail: () => {
-            uni.hideLoading()
+  const base64Data = qrSrc.value.replace(/^data:image\/\w+;base64,/, '')
+  const fs = uni.getFileSystemManager()
+  const filePath = `${wx.env.USER_DATA_PATH}/qrcode_${Date.now()}.png`
+  fs.writeFile({
+    filePath,
+    data: base64Data,
+    encoding: 'base64',
+    success: () => {
+      uni.saveImageToPhotosAlbum({
+        filePath,
+        success: () => {
+          uni.hideLoading()
+          uni.showToast({ title: '已保存到相册', icon: 'success' })
+        },
+        fail: (err: any) => {
+          uni.hideLoading()
+          if (err.errMsg && err.errMsg.includes('auth deny')) {
+            uni.showToast({ title: '请授权保存到相册', icon: 'none' })
+          } else {
             uni.showToast({ title: '保存失败，请检查相册权限', icon: 'none' })
-          },
-        })
-      } else {
-        uni.hideLoading()
-        uni.showToast({ title: '保存失败', icon: 'none' })
-      }
+          }
+        },
+      })
     },
     fail: () => {
       uni.hideLoading()

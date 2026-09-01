@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 import { validatePhone, DEPARTMENT_OPTIONS } from '@/utils'
 import styles from './index.module.scss'
@@ -16,6 +17,38 @@ const phone = ref(user.value?.phone || '')
 const department = ref(user.value?.department || '')
 const saving = ref(false)
 
+const showPrivacy = ref(false)
+const privacyContractName = ref('')
+
+const checkPrivacy = () => {
+  const wxApi: any = (typeof wx !== 'undefined') ? wx : null
+  if (wxApi && typeof wxApi.getPrivacySetting === 'function') {
+    wxApi.getPrivacySetting({
+      success: (res: any) => {
+        if (res.needAuthorization) {
+          privacyContractName.value = res.privacyContractName || '隐私保护指引'
+          showPrivacy.value = true
+        }
+      },
+    })
+  }
+}
+
+onLoad(() => {
+  checkPrivacy()
+})
+
+const handleOpenPrivacyContract = () => {
+  const wxApi: any = (typeof wx !== 'undefined') ? wx : null
+  if (wxApi && typeof wxApi.openPrivacyContract === 'function') {
+    wxApi.openPrivacyContract({})
+  }
+}
+
+const handleAgreePrivacy = () => {
+  showPrivacy.value = false
+}
+
 const deptIndex = computed(() => {
   const idx = DEPARTMENTS.indexOf(department.value)
   return idx >= 0 ? idx : 0
@@ -24,9 +57,25 @@ const handleDeptPick = (e: any) => {
   department.value = DEPARTMENTS[Number(e.detail.value)]
 }
 
-const onChooseAvatar = (e: any) => {
+const onChooseAvatar = async (e: any) => {
   if (e.detail.avatarUrl) {
-    avatarUrl.value = e.detail.avatarUrl
+    const tempPath = e.detail.avatarUrl
+    try {
+      uni.showLoading({ title: '上传中...' })
+      const uploadRes = await uniCloud.uploadFile({
+        filePath: tempPath,
+        cloudPath: `avatars/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`,
+      })
+      if (uploadRes && uploadRes.fileID) {
+        avatarUrl.value = uploadRes.fileID
+      } else {
+        avatarUrl.value = tempPath
+      }
+    } catch {
+      avatarUrl.value = tempPath
+    } finally {
+      uni.hideLoading()
+    }
   }
 }
 
@@ -38,6 +87,11 @@ const onPhoneInput = (e: any) => {
 }
 const onNicknameInput = (e: any) => {
   nickname.value = e.detail.value
+}
+const onNicknameBlur = (e: any) => {
+  if (e.detail.value) {
+    nickname.value = e.detail.value
+  }
 }
 
 watch(user, () => {
@@ -110,6 +164,7 @@ const handleSave = async () => {
           placeholder="点击选择微信昵称"
           :value="nickname"
           @input="onNicknameInput"
+          @blur="onNicknameBlur"
         />
       </view>
       <view :class="styles.formRow">
@@ -168,6 +223,25 @@ const handleSave = async () => {
       >
         保存
       </button>
+    </view>
+
+    <view v-if="showPrivacy" :class="styles.privacyMask">
+      <view :class="styles.privacyDialog">
+        <text :class="styles.privacyTitle">隐私保护提示</text>
+        <text :class="styles.privacyDesc">在使用头像和昵称功能前，请阅读并同意{{ privacyContractName }}</text>
+        <view :class="styles.privacyBtns">
+          <view :class="styles.privacyBtnOutline" @tap="handleOpenPrivacyContract">
+            <text>查看协议</text>
+          </view>
+          <button
+            :class="styles.privacyBtnFill"
+            open-type="agreePrivacyAuthorization"
+            @agreeprivacyauthorization="handleAgreePrivacy"
+          >
+            同意
+          </button>
+        </view>
+      </view>
     </view>
   </view>
 </template>

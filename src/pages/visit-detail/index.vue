@@ -157,6 +157,13 @@ const visitTimeOnly = computed(() => {
       </view>
 
       <view :class="styles.field">
+        <text :class="styles.label">所在公司</text>
+        <view :class="styles.valueWrap">
+          <text :class="styles.value">{{ visit.company || '—' }}</text>
+        </view>
+      </view>
+
+      <view :class="styles.field">
         <text :class="styles.label">来访事由</text>
         <view :class="styles.textareaWrap">
           <text :class="styles.value">{{ visit.purpose || '—' }}</text>

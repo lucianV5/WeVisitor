@@ -20,6 +20,7 @@ export interface Visit {
   visitorName: string
   visitorPhone: string
   visitorCount: number
+  company: string
   hostId: string
   hostName: string
   hostDepartment?: string

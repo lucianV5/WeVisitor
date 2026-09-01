@@ -81,6 +81,10 @@ const rejectReason = computed(() => props.visit.rejectReason || '')
         <text :class="styles.value">{{ purpose }}</text>
       </view>
       <view :class="styles.row">
+        <text :class="styles.label">所在公司：</text>
+        <text :class="styles.value">{{ visit.company || '—' }}</text>
+      </view>
+      <view :class="styles.row">
         <text :class="styles.label">申 请 人：</text>
         <text :class="styles.value">{{ applicant }}</text>
       </view>

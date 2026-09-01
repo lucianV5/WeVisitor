@@ -16,6 +16,7 @@ const form = reactive({
   visitorName: '',
   visitorPhone: '',
   visitorCount: 1,
+  company: '',
   hostId: '',
   hostName: '',
   visitDate: '',
@@ -60,6 +61,7 @@ const resetForm = () => {
   form.visitorName = ''
   form.visitorPhone = ''
   form.visitorCount = 1
+  form.company = ''
   form.hostId = ''
   form.hostName = ''
   form.visitDate = ''
@@ -93,7 +95,9 @@ const validate = () => {
   if (!form.visitorPhone.trim()) newErrors.visitorPhone = '请输入手机号'
   else if (!validatePhone(form.visitorPhone)) newErrors.visitorPhone = '手机号格式不正确'
   if (!form.visitorCount || form.visitorCount < 1) newErrors.visitorCount = '请输入随行人数'
-  if (!form.hostId) newErrors.hostId = '请选择接待人'
+ if (!form.company.trim()) newErrors.company = '请输入所在公司'
+ if (form.company.length > 100) newErrors.company = '所在公司不超过100字'
+ if (!form.hostId) newErrors.hostId = '请选择接待人'
   if (!form.visitDate) newErrors.visitDate = '请选择来访时间'
   if (!form.purpose.trim()) newErrors.purpose = '请输入来访事由'
   Object.keys(errors).forEach(k => delete errors[k])
@@ -174,6 +178,7 @@ const onVisitorNameInput = (e: any) => onChange('visitorName', e.detail.value)
 const onVisitorPhoneInput = (e: any) => onChange('visitorPhone', e.detail.value)
 const onPurposeInput = (e: any) => onChange('purpose', e.detail.value)
 const onRemarkInput = (e: any) => onChange('remark', e.detail.value)
+const onCompanyInput = (e: any) => onChange('company', e.detail.value)
 const onCountInput = (e: any) => {
   const v = e.detail.value
   const num = v === '' || v == null ? '' : Number(v)
@@ -273,6 +278,23 @@ const handleTimeTap = () => {
           />
         </view>
         <text v-if="errors.visitorCount" :class="styles.error">{{ errors.visitorCount }}</text>
+      </view>
+
+      <view :class="styles.field">
+        <view :class="styles.labelRow">
+          <text :class="styles.required">*</text>
+          <text :class="styles.label">所在公司</text>
+        </view>
+        <view :class="styles.inputWrap">
+          <input
+            :class="styles.input"
+            placeholder="请输入"
+            :value="form.company"
+            maxlength="100"
+            @input="onCompanyInput"
+          />
+        </view>
+        <text v-if="errors.company" :class="styles.error">{{ errors.company }}</text>
       </view>
 
       <view :class="styles.field">
